@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CLIENT_ADMIN
+  SUPER_ADMIN
+  CUSTOMER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+  PENDING
+}
+
+enum BusinessStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id          String   @id @default(uuid())
+  clerkUserId String   @unique
+  email       String   @unique
+  name        String?
+  imageUrl    String?
+  role        Role     @default(CLIENT_ADMIN)
+  status      UserStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  businessId  String?
+  business    Business? @relation("BusinessEmployees", fields: [businessId], references: [id])
+  
+  ownedBusiness Business? @relation("BusinessOwner")
+  
+  subscriptions Subscription[]
+  mealLogs      MealLog[]
+  bills         Bill[]
+  notifications Notification[]
+}
+
+model Business {
+  id          String   @id @default(uuid())
+  uniqueId    String?  @unique // Assigned by Super Admin (e.g., MESS-1001)
+  name        String
+  address     String?
+  phone       String?
+  status      BusinessStatus @default(PENDING)
+  
+  ownerId     String   @unique
+  owner       User     @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  customers   User[]   @relation("BusinessEmployees")
+  
+  subscriptions Subscription[]
+  mealLogs      MealLog[]
+  bills         Bill[]
+  menus         Menu[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Subscription {
+  id            String   @id @default(uuid())
+  userId        String
+  businessId    String
+  mealCount     Int
+  usedMeals     Int      @default(0)
+  mealPrice     Float
+  totalAmount   Float
+  validityDays  Int?
+  reminderCount Int      @default(2) // When to send reminder
+  status        String   @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model MealLog {
+  id          String   @id @default(uuid())
+  userId      String
+  businessId  String
+  mealType    String   // Breakfast, Lunch, Dinner
+  device      String?
+  ipAddress   String?
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+}
+
+model Bill {
+  id              String   @id @default(uuid())
+  invoiceNumber   String   @unique
+  userId          String
+  businessId      String
+  totalAmount     Float
+  paidAmount      Float    @default(0)
+  remainingAmount Float
+  discount        Float    @default(0)
+  extraCharges    Float    @default(0)
+  gst             Float    @default(0)
+  status          String   @default("UNPAID") // UNPAID, PARTIAL, PAID
+  dueDate         DateTime?
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  payments        Payment[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  billId        String
+  amount        Float
+  paymentMethod String   // CASH, UPI, BANK_TRANSFER
+  transactionId String?
+  
+  bill          Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  
+  paymentDate   DateTime @default(now())
+}
+
+model Menu {
+  id          String   @id @default(uuid())
+  businessId  String
+  type        String   // DAILY, WEEKLY
+  day         String?  // MONDAY, TUESDAY...
+  date        DateTime?
+  title       String
+  description String?
+  status      String   @default("ACTIVE")
+  
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String   // REMINDER, BILL, SYSTEM
+  message     String
+  status      String   @default("UNREAD") // UNREAD, READ
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+}
