@@ -46,9 +46,15 @@ export async function approveBusiness(businessId, uniqueId) {
     const user = await checkUser();
     if (!user || user.role !== "SUPER_ADMIN") throw new Error("Unauthorized");
 
-    await db.business.update({
+    const updatedBusiness = await db.business.update({
       where: { id: businessId },
       data: { status: "APPROVED", uniqueId }
+    });
+
+    // Also update the business owner's user status to ACTIVE
+    await db.user.update({
+      where: { id: updatedBusiness.ownerId },
+      data: { status: "ACTIVE" }
     });
 
     revalidatePath("/super-admin/requests");
@@ -70,6 +76,18 @@ export async function rejectBusiness(businessId) {
 
     revalidatePath("/super-admin/requests");
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getApprovedBusinesses() {
+  try {
+    const businesses = await db.business.findMany({
+      where: { status: "APPROVED" },
+      orderBy: { name: "asc" }
+    });
+    return { success: true, businesses };
   } catch (error) {
     return { success: false, error: error.message };
   }
