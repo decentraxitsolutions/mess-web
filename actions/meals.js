@@ -206,3 +206,150 @@ export async function getCustomerMealLogs() {
     return { success: false, error: error.message };
   }
 }
+
+export async function recordCustomerSelfCheckIn(qrPayload) {
+  try {
+    const user = await checkUser();
+    if (!user || user.role !== "CUSTOMER") throw new Error("Unauthorized");
+    if (user.status !== "ACTIVE") throw new Error("Your account is not active. Please contact admin.");
+    if (!user.businessId) throw new Error("You are not registered with any mess.");
+
+    // Parse payload: uniqueId:dateString:mealType
+    const parts = qrPayload.split(":");
+    if (parts.length < 3) {
+      throw new Error("Invalid QR code format.");
+    }
+    const [uniqueId, qrDate, qrMealType] = parts;
+
+    // Fetch the business the customer belongs to
+    const business = await db.business.findUnique({
+      where: { id: user.businessId }
+    });
+    if (!business) throw new Error("Registered mess not found.");
+    if (business.uniqueId !== uniqueId) {
+      throw new Error("This QR belongs to a different mess. You cannot check in here.");
+    }
+
+    // Verify current date matches server date (prevent old screenshots)
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (qrDate !== todayStr) {
+      throw new Error("This QR code has expired. Please scan the live QR code on the admin screen.");
+    }
+
+    // Detect/Verify active meal type
+    const now = new Date();
+    const hours = now.getHours();
+    let currentMealType = "LUNCH";
+    if (hours >= 6 && hours < 11) currentMealType = "BREAKFAST";
+    else if (hours >= 11 && hours < 16) currentMealType = "LUNCH";
+    else if (hours >= 16 && hours < 23) currentMealType = "DINNER";
+
+    if (qrMealType !== currentMealType) {
+      throw new Error(`This QR is for ${qrMealType}, but it is currently ${currentMealType} hours.`);
+    }
+
+    // Check customer subscription
+    const subscription = await db.subscription.findFirst({
+      where: { userId: user.id, businessId: business.id, status: "ACTIVE" }
+    });
+    if (!subscription) {
+      throw new Error("No active subscription plan found. Please contact admin.");
+    }
+
+    const remainingMeals = subscription.mealCount - subscription.usedMeals;
+    if (remainingMeals <= 0) {
+      throw new Error("You have 0 meals remaining in your plan. Please renew.");
+    }
+
+    // Check duplicate check-in today for this meal type
+    const startOfDay = new Date();
+    startOfDay.setHours(0,0,0,0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23,59,59,999);
+
+    const duplicateCheck = await db.mealLog.findFirst({
+      where: {
+        userId: user.id,
+        businessId: business.id,
+        mealType: currentMealType,
+        createdAt: { gte: startOfDay, lte: endOfDay }
+      }
+    });
+
+    if (duplicateCheck) {
+      throw new Error(`You have already checked in for ${currentMealType} today.`);
+    }
+
+    // Update subscription count
+    const updatedSub = await db.subscription.update({
+      where: { id: subscription.id },
+      data: { usedMeals: subscription.usedMeals + 1 }
+    });
+
+    // Create meal log
+    const log = await db.mealLog.create({
+      data: {
+        userId: user.id,
+        businessId: business.id,
+        mealType: currentMealType
+      }
+    });
+
+    // Send warning notification if meals are low
+    const newMealsLeft = updatedSub.mealCount - updatedSub.usedMeals;
+    if (newMealsLeft <= updatedSub.reminderCount) {
+      await db.notification.create({
+        data: {
+          userId: user.id,
+          type: "REMINDER",
+          message: `Alert: Low meal balance! Only ${newMealsLeft} meals remaining in your plan.`,
+          status: "UNREAD"
+        }
+      });
+    }
+
+    // Revalidate paths for real-time updates
+    revalidatePath("/customer/dashboard");
+    revalidatePath("/customer/meals");
+    revalidatePath("/dashboard/meals");
+    revalidatePath("/dashboard");
+
+    return {
+      success: true,
+      mealType: currentMealType,
+      remainingMeals: newMealsLeft,
+      totalMeals: updatedSub.mealCount
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getScannerQRData() {
+  try {
+    const user = await checkUser();
+    if (!user || user.role !== "CLIENT_ADMIN") throw new Error("Unauthorized");
+
+    const business = await db.business.findUnique({
+      where: { ownerId: user.id }
+    });
+    if (!business) throw new Error("Mess not found");
+
+    // Fetch last 5 check-in logs for display on scanner screen
+    const logs = await db.mealLog.findMany({
+      where: { businessId: business.id },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+      take: 5
+    });
+
+    return { 
+      success: true, 
+      uniqueId: business.uniqueId, 
+      name: business.name,
+      logs 
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}

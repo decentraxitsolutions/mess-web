@@ -2,8 +2,10 @@ import { getCustomerDashboardData } from "@/actions/customer-dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { QrCode, ShieldAlert, Clock, Utensils, CheckCircle2, AlertCircle, Calendar, Receipt } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { QrCode, ShieldAlert, Clock, Utensils, CheckCircle2, AlertCircle, Calendar, Receipt, Scan } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -143,27 +145,27 @@ export default async function CustomerDashboardPage() {
         {/* Right Column: QR Code & Recent dine logs */}
         <div className="md:col-span-2 space-y-6">
           
-          {/* Universal QR Code */}
+          {/* Scan & Dine Quick Link */}
           <Card className="shadow-lg border-2 border-indigo-100/50 bg-card text-center overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-bold">Universal QR Ticket</CardTitle>
-              <CardDescription>Scan this at the check-in desk</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-bold">Scan & Dine</CardTitle>
+              <CardDescription>Scan the Mess owner's QR code at the counter</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center py-4 bg-muted/30">
-              <div className="bg-white p-3 rounded-2xl shadow-md border-2 border-neutral-100">
-                {/* Dynamically generate QR code referencing clerkUserId */}
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${data.clerkUserId}`} 
-                  alt="My Dine QR Ticket"
-                  className="w-44 h-44 object-contain"
-                />
+            <CardContent className="flex flex-col items-center justify-center py-6 bg-indigo-50/30 space-y-4">
+              <div className="bg-white p-4 rounded-full shadow-md border-2 border-indigo-100 animate-pulse">
+                <Scan className="w-12 h-12 text-indigo-600" />
               </div>
-              <span className="text-[10px] text-muted-foreground font-mono mt-3 select-all bg-neutral-100 px-2 py-0.5 rounded">
-                Diner Ref: {data.clerkUserId}
-              </span>
+              <p className="text-xs text-muted-foreground max-w-[200px] leading-relaxed">
+                Ready to eat? Use your camera scanner to check in and deduct one thali.
+              </p>
+              <Link href="/customer/scanner" className="w-full">
+                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5 shadow-md">
+                  <Scan className="h-4 w-4" /> Open Camera Scanner
+                </Button>
+              </Link>
             </CardContent>
-            <CardFooter className="text-[10px] text-muted-foreground py-2 justify-center border-t">
-              Generates a dynamic scan-token instantly
+            <CardFooter className="text-[10px] text-muted-foreground py-2.5 justify-center border-t bg-neutral-50">
+              Quickly check in and log your meal instantly
             </CardFooter>
           </Card>
 

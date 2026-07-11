@@ -1,223 +1,213 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { recordMealAttendance } from "@/actions/meals";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { getScannerQRData } from "@/actions/meals";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { QrCode, ShieldAlert, Sparkles, CheckCircle, AlertTriangle, Play, Pause } from "lucide-react";
+import { QrCode, Clock, RefreshCw, CheckCircle2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
-export default function ScannerPage() {
-  const [loading, setLoading] = useState(false);
-  const [mealType, setMealType] = useState("AUTO");
-  
-  // Simulated Viewfinder States
-  const [isScanning, setIsScanning] = useState(true);
-  const [manualInput, setManualInput] = useState("");
-  
-  // Feedback States
-  const [feedback, setFeedback] = useState(null); // { success: boolean, message: string }
-  const feedbackTimeout = useRef(null);
+export default function AdminQRConsolePage() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [activeMealType, setActiveMealType] = useState("LUNCH");
 
-  // Play audio beep sound on scan success
-  const playBeep = (success = true) => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(success ? 880 : 330, ctx.currentTime); // High pitch for success, low for error
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start();
-      setTimeout(() => osc.stop(), success ? 150 : 300);
-    } catch (e) {
-      console.log("Audio not supported / initialized");
-    }
-  };
-
-  const handleScanSubmit = async (val) => {
-    if (!val) return;
+  const loadData = async () => {
     setLoading(true);
-    setFeedback(null);
-    if (feedbackTimeout.current) clearTimeout(feedbackTimeout.current);
-
     try {
-      const res = await recordMealAttendance(val, mealType);
+      const res = await getScannerQRData();
       if (res.success) {
-        playBeep(true);
-        setFeedback({
-          success: true,
-          message: `Check-in Successful! Diner: ${res.dinerName}. Meal: ${res.mealType}. Remaining: ${res.remainingMeals}/${res.totalMeals} meals.`
-        });
-        toast.success(`Scan recorded for ${res.dinerName}!`);
-        setManualInput("");
+        setData(res);
       } else {
-        playBeep(false);
-        setFeedback({
-          success: false,
-          message: res.error || "Attendance check-in failed."
-        });
-        toast.error(res.error || "Failed to log attendance");
+        toast.error(res.error || "Failed to load scanner details.");
       }
     } catch (e) {
-      playBeep(false);
-      setFeedback({
-        success: false,
-        message: e.message
-      });
-      toast.error(e.message);
+      toast.error("Error fetching scanner details.");
     } finally {
       setLoading(false);
-      // Clear feedback after 6 seconds
-      feedbackTimeout.current = setTimeout(() => {
-        setFeedback(null);
-      }, 6000);
     }
   };
 
-  const handleManualCheckIn = (e) => {
-    e.preventDefault();
-    if (!manualInput.trim()) return;
-    handleScanSubmit(manualInput.trim());
-  };
-
-  // Clean up timers
+  // Clock effect & active meal type auto detection
   useEffect(() => {
-    return () => {
-      if (feedbackTimeout.current) clearTimeout(feedbackTimeout.current);
-    };
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now);
+
+      const hours = now.getHours();
+      let detectedMeal = "LUNCH";
+      if (hours >= 6 && hours < 11) detectedMeal = "BREAKFAST";
+      else if (hours >= 11 && hours < 16) detectedMeal = "LUNCH";
+      else if (hours >= 16 && hours < 23) detectedMeal = "DINNER";
+      else detectedMeal = "CLOSED";
+
+      setActiveMealType(detectedMeal);
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
+  // Initial data load
+  useEffect(() => {
+    loadData();
+    // Auto-refresh logs every 8 seconds for a live-like feel
+    const logPoll = setInterval(() => {
+      loadData();
+    }, 8000);
+    return () => clearInterval(logPoll);
+  }, []);
+
+  if (loading && !data) {
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-4 text-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+        <p className="text-muted-foreground">Initializing live QR console...</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-4 text-center">
+        <ShieldAlert className="h-12 w-12 text-destructive" />
+        <h3 className="text-xl font-bold">Failed to initialize</h3>
+        <Button onClick={loadData}>Retry</Button>
+      </div>
+    );
+  }
+
+  const todayStr = currentTime.toISOString().split("T")[0];
+  const qrPayload = `${data.uniqueId}:${todayStr}:${activeMealType}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`;
+
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">QR Attendance Scanner</h1>
-        <p className="text-muted-foreground">Scan customer QR codes to validate and deduct meals automatically.</p>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dine Check-In QR Console</h1>
+          <p className="text-muted-foreground">Display this QR code for customers to scan and log their meals.</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={loadData}
+          disabled={loading}
+          className="gap-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Force Refresh
+        </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Scanner Viewfinder Box */}
-        <Card className="overflow-hidden shadow-xl border bg-card">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Attendance Console</CardTitle>
-              <CardDescription>Viewfinder simulator for diner QR codes</CardDescription>
-            </div>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={() => setIsScanning(!isScanning)}
-            >
-              {isScanning ? <Pause className="h-4 w-4 text-amber-600" /> : <Play className="h-4 w-4 text-emerald-600" />}
-            </Button>
+      <div className="grid gap-6 md:grid-cols-5">
+        {/* QR Display Card (3 columns) */}
+        <Card className="md:col-span-3 shadow-xl border-2 border-indigo-100 flex flex-col justify-between overflow-hidden">
+          <CardHeader className="bg-indigo-50/50 border-b pb-4 text-center">
+            <CardTitle className="text-lg font-bold text-indigo-900 flex items-center justify-center gap-2">
+              <QrCode className="h-5 w-5 text-indigo-600 animate-pulse" /> {data.name}
+            </CardTitle>
+            <CardDescription className="text-indigo-950 font-medium">Mess ID: {data.uniqueId}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center p-6 bg-neutral-900 border-y border-neutral-800">
-            {/* Viewfinder Graphic */}
-            <div className="relative flex h-64 w-64 flex-col items-center justify-center rounded-2xl border-4 border-neutral-700 bg-neutral-950 overflow-hidden shadow-inner">
-              {/* Scan target corners */}
-              <div className="absolute top-2 left-2 h-6 w-6 border-t-4 border-l-4 border-indigo-500 rounded-tl" />
-              <div className="absolute top-2 right-2 h-6 w-6 border-t-4 border-r-4 border-indigo-500 rounded-tr" />
-              <div className="absolute bottom-2 left-2 h-6 w-6 border-b-4 border-l-4 border-indigo-500 rounded-bl" />
-              <div className="absolute bottom-2 right-2 h-6 w-6 border-b-4 border-r-4 border-indigo-500 rounded-br" />
-
-              {/* Animated laser line */}
-              {isScanning && (
-                <div className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent animate-bounce" style={{ animationDuration: "2s" }} />
-              )}
-
-              <QrCode className={`h-24 w-24 text-neutral-700 transition-all ${isScanning ? "animate-pulse" : "opacity-30"}`} />
-              
-              <div className="absolute bottom-4 bg-black/60 px-3 py-1 rounded text-[10px] text-indigo-400 font-mono tracking-wider font-semibold">
-                {isScanning ? "SCANNING FOR DIGITS..." : "SCANNER STANDBY"}
+          
+          <CardContent className="flex flex-col items-center justify-center py-8 space-y-6">
+            {activeMealType === "CLOSED" ? (
+              <div className="text-center py-12 px-6 border-2 border-dashed rounded-2xl bg-red-50/40 text-red-900">
+                <Clock className="h-12 w-12 mx-auto mb-3 text-red-500 opacity-60" />
+                <h3 className="text-lg font-bold">Mess is Currently Closed</h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                  Meal deduction check-in is only available during Breakfast, Lunch, and Dinner hours.
+                </p>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Live QR */}
+                <div className="bg-white p-4 rounded-3xl shadow-lg border-2 border-indigo-50">
+                  <img 
+                    src={qrCodeUrl} 
+                    alt="Mess QR Code"
+                    className="w-56 h-56 object-contain"
+                  />
+                </div>
+
+                {/* Details indicator */}
+                <div className="text-center space-y-1.5 w-full max-w-xs">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    ACTIVE MEAL: {activeMealType}
+                  </div>
+                  
+                  <p className="text-[10px] font-mono text-muted-foreground select-all bg-muted px-3 py-1 rounded-lg">
+                    Payload: {qrPayload}
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
-          <CardFooter className="bg-card text-xs text-muted-foreground py-3 flex justify-between">
-            <span>Camera input enabled</span>
-            <span className="flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Auto-deduct active
-            </span>
-          </CardFooter>
+
+          {/* Footer warning */}
+          <div className="bg-neutral-50 p-4 border-t text-center text-xs text-muted-foreground">
+            Customers must scan this code using the <span className="font-semibold text-indigo-700">Scan QR</span> option in their diner app.
+          </div>
         </Card>
 
-        {/* Scan Controls & Manual Input */}
-        <div className="space-y-6">
-          {/* Meal Configuration Card */}
-          <Card className="shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold">Meal Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="scan-meal-type">Assigned Meal Event</Label>
-                <select
-                  id="scan-meal-type"
-                  value={mealType}
-                  onChange={(e) => setMealType(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none"
-                >
-                  <option value="AUTO">Auto Detect by Hour</option>
-                  <option value="BREAKFAST">Force Breakfast (6 AM - 11 AM)</option>
-                  <option value="LUNCH">Force Lunch (11 AM - 4 PM)</option>
-                  <option value="DINNER">Force Dinner (4 PM - 11 PM)</option>
-                </select>
+        {/* Live Logs Card (2 columns) */}
+        <div className="md:col-span-2 space-y-6">
+          {/* Clock Card */}
+          <Card className="shadow-md bg-neutral-900 text-white border-none">
+            <CardContent className="py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Clock className="h-5 w-5 text-indigo-400" />
+                <span className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">Live System Clock</span>
               </div>
+              <span className="text-lg font-mono font-bold tracking-widest text-indigo-300">
+                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
             </CardContent>
           </Card>
 
-          {/* Manual Input Form */}
-          <Card className="shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold">Manual Search Check-In</CardTitle>
-              <CardDescription>Input Diner ID or Clerk ID to record attendance manually.</CardDescription>
+          {/* Check-ins Tracker */}
+          <Card className="shadow-md h-[360px] flex flex-col justify-between">
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                Live Check-ins
+              </CardTitle>
+              <CardDescription>Real-time diner check-in confirmations</CardDescription>
             </CardHeader>
-            <form onSubmit={handleManualCheckIn}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="manual-id">Diner ID / Email</Label>
-                  <Input 
-                    id="manual-id" 
-                    value={manualInput} 
-                    onChange={(e) => setManualInput(e.target.value)} 
-                    placeholder="Enter email or Diner ID" 
-                    required 
-                  />
+            <CardContent className="flex-1 overflow-y-auto pt-4">
+              {data.logs.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-xs border border-dashed rounded-xl h-full flex flex-col items-center justify-center">
+                  No check-ins recorded yet today.
                 </div>
-              </CardContent>
-              <CardFooter className="flex justify-end pt-2">
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium w-full sm:w-auto" disabled={loading}>
-                  {loading ? "Validating Check-In..." : "Check-in Diner"}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-
-          {/* Verification Status Alert */}
-          {feedback && (
-            <div className={`p-4 rounded-xl border flex items-start gap-3 shadow-lg animate-in fade-in slide-in-from-bottom-2 ${
-              feedback.success 
-                ? "bg-green-50 border-green-200 text-green-800" 
-                : "bg-red-50 border-red-200 text-red-800"
-            }`}>
-              {feedback.success ? (
-                <CheckCircle className="h-6 w-6 text-green-600 shrink-0 mt-0.5" />
               ) : (
-                <AlertTriangle className="h-6 w-6 text-red-600 shrink-0 mt-0.5" />
+                <div className="space-y-4">
+                  {data.logs.map((log) => (
+                    <div key={log.id} className="flex justify-between items-start border-b pb-3 last:border-0 last:pb-0 text-xs">
+                      <div>
+                        <span className="font-bold text-neutral-900 block">
+                          {log.user.name || log.user.email}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex items-center gap-0.5 font-bold text-[9px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full mb-1">
+                          <CheckCircle2 className="h-2.5 w-2.5" /> Checked
+                        </span>
+                        <span className="block text-[10px] font-mono text-muted-foreground">{log.mealType}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
-              <div>
-                <h4 className="font-bold text-sm">{feedback.success ? "Check-In Success" : "Scan Error"}</h4>
-                <p className="text-xs mt-1 leading-relaxed">{feedback.message}</p>
-              </div>
-            </div>
-          )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

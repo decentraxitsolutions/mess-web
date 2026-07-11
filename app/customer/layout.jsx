@@ -2,7 +2,7 @@ import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 import Header from "@/components/HeaderComponents/Header";
 import Link from "next/link";
-import { LayoutDashboard, Utensils, History, Receipt, Home } from "lucide-react";
+import { LayoutDashboard, Utensils, History, Receipt, Home, Scan } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,7 @@ export default async function CustomerLayout({ children }) {
 
   const navItems = [
     { label: "My Dashboard", href: "/customer/dashboard", icon: LayoutDashboard },
+    { label: "Scan & Dine", href: "/customer/scanner", icon: Scan },
     { label: "Daily Menu", href: "/customer/menu", icon: Utensils },
     { label: "Dine History", href: "/customer/meals", icon: History },
     { label: "My Invoices", href: "/customer/billing", icon: Receipt },
