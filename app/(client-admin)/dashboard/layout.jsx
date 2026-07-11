@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 const menuItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -74,10 +74,10 @@ export default function DashboardLayout({ children }) {
       <div className="flex items-center border-b bg-card px-4 py-3 md:hidden">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="mr-2">
+            <button className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "mr-2")}>
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle Menu</span>
-            </Button>
+            </button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
             <div className="flex h-full flex-col py-6 px-4">
