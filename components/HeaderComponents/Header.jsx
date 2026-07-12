@@ -27,13 +27,11 @@ const Header = async ({ user: propUser }) => {
 
         <div className="flex items-center gap-3">
           <Show when="signed-in">
-            {user?.role === 'SUPER_ADMIN' && (
-              <Link href="/super-admin">
-                <Button variant="outline" size="sm" className="hidden sm:inline-flex rounded-full">
-                  Admin Console
-                </Button>
-              </Link>
-            )}
+            <Link href="/login-redirect">
+              <Button variant="outline" size="sm" className="rounded-full">
+                Dashboard
+              </Button>
+            </Link>
             <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
           </Show>
           <Show when="signed-out">

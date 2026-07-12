@@ -26,15 +26,17 @@ enum BusinessStatus {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  clerkUserId String   @unique
-  email       String   @unique
-  name        String?
-  imageUrl    String?
-  role        Role     @default(CLIENT_ADMIN)
-  status      UserStatus @default(PENDING)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  clerkUserId   String   @unique
+  email         String   @unique
+  name          String?
+  phone         String?
+  imageUrl      String?
+  role          Role     @default(CLIENT_ADMIN)
+  status        UserStatus @default(PENDING)
+  requestedPlan String?  // Optional, if user selects a plan at signup
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   businessId  String?
   business    Business? @relation("BusinessEmployees", fields: [businessId], references: [id])
@@ -64,6 +66,7 @@ model Business {
   mealLogs      MealLog[]
   bills         Bill[]
   menus         Menu[]
+  plans         SubscriptionPlan[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -162,4 +165,19 @@ model Notification {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   createdAt   DateTime @default(now())
+}
+
+model SubscriptionPlan {
+  id            String   @id @default(uuid())
+  businessId    String
+  name          String
+  mealCount     Int
+  mealPrice     Float
+  totalAmount   Float
+  validityDays  Int
+  reminderCount Int      @default(2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }

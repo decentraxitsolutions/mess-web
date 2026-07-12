@@ -54,12 +54,12 @@ const Hero = ({ userRole }) => {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            {userRole === 'SUPER_ADMIN' ? (
+            {userRole ? (
               <Link 
-                href="/super-admin"
-                className={cn(buttonVariants({ size: "lg" }), "rounded-full px-8 h-14 text-base w-full sm:w-auto shadow-lg hover:shadow-xl transition-all")}
+                href="/login-redirect"
+                className={cn(buttonVariants({ size: "lg" }), "rounded-full px-8 h-14 text-base w-full sm:w-auto shadow-lg hover:shadow-xl transition-all bg-indigo-600 hover:bg-indigo-700 text-white")}
               >
-                Go to Admin Console <ArrowRight className="ml-2 h-5 w-5" />
+                Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             ) : (
               <Link 
