@@ -78,8 +78,7 @@ export default function AdminQRConsolePage() {
     );
   }
 
-  const todayStr = currentTime.toISOString().split("T")[0];
-  const qrPayload = `${data.uniqueId}:${todayStr}:${activeMealType}`;
+  const qrPayload = data.uniqueId;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`;
 
   return (
@@ -112,41 +111,29 @@ export default function AdminQRConsolePage() {
           </CardHeader>
           
           <CardContent className="flex flex-col items-center justify-center py-8 space-y-6">
-            {activeMealType === "CLOSED" ? (
-              <div className="text-center py-12 px-6 border-2 border-dashed rounded-2xl bg-red-50/40 text-red-900">
-                <Clock className="h-12 w-12 mx-auto mb-3 text-red-500 opacity-60" />
-                <h3 className="text-lg font-bold">Mess is Currently Closed</h3>
-                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                  Meal deduction check-in is only available during Breakfast, Lunch, and Dinner hours.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Live QR */}
-                <div className="bg-white p-4 rounded-3xl shadow-lg border-2 border-indigo-50">
-                  <img 
-                    src={qrCodeUrl} 
-                    alt="Mess QR Code"
-                    className="w-56 h-56 object-contain"
-                  />
-                </div>
+            {/* Live QR */}
+            <div className="bg-white p-4 rounded-3xl shadow-lg border-2 border-indigo-50">
+              <img 
+                src={qrCodeUrl} 
+                alt="Mess QR Code"
+                className="w-56 h-56 object-contain"
+              />
+            </div>
 
-                {/* Details indicator */}
-                <div className="text-center space-y-1.5 w-full max-w-xs">
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    ACTIVE MEAL: {activeMealType}
-                  </div>
-                  
-                  <p className="text-[10px] font-mono text-muted-foreground select-all bg-muted px-3 py-1 rounded-lg">
-                    Payload: {qrPayload}
-                  </p>
-                </div>
-              </>
-            )}
+            {/* Details indicator */}
+            <div className="text-center space-y-1.5 w-full max-w-xs">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                ACTIVE MEAL: {activeMealType}
+              </div>
+              
+              <p className="text-[10px] font-mono text-muted-foreground select-all bg-muted px-3 py-1 rounded-lg">
+                Mess ID Payload: {qrPayload}
+              </p>
+            </div>
           </CardContent>
 
           {/* Footer warning */}

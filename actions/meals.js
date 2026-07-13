@@ -214,12 +214,7 @@ export async function recordCustomerSelfCheckIn(qrPayload) {
     if (user.status !== "ACTIVE") throw new Error("Your account is not active. Please contact admin.");
     if (!user.businessId) throw new Error("You are not registered with any mess.");
 
-    // Parse payload: uniqueId:dateString:mealType
-    const parts = qrPayload.split(":");
-    if (parts.length < 3) {
-      throw new Error("Invalid QR code format.");
-    }
-    const [uniqueId, qrDate, qrMealType] = parts;
+    const uniqueId = qrPayload.trim();
 
     // Fetch the business the customer belongs to
     const business = await db.business.findUnique({
@@ -230,13 +225,23 @@ export async function recordCustomerSelfCheckIn(qrPayload) {
       throw new Error("This QR belongs to a different mess. You cannot check in here.");
     }
 
-    // Verify current date matches server date (prevent old screenshots)
-    const todayStr = new Date().toISOString().split("T")[0];
-    if (qrDate !== todayStr) {
-      throw new Error("This QR code has expired. Please scan the live QR code on the admin screen.");
+    // Check duplicate check-in within the last 3 hours
+    const threeHoursAgo = new Date();
+    threeHoursAgo.setHours(threeHoursAgo.getHours() - 3);
+
+    const duplicateCheck = await db.mealLog.findFirst({
+      where: {
+        userId: user.id,
+        businessId: business.id,
+        createdAt: { gte: threeHoursAgo }
+      }
+    });
+
+    if (duplicateCheck) {
+      throw new Error("You have already checked in within the last 3 hours.");
     }
 
-    // Detect/Verify active meal type
+    // Detect active meal type for logging metadata based on current time
     const now = new Date();
     const hours = now.getHours();
     let currentMealType = "LUNCH";
@@ -244,40 +249,17 @@ export async function recordCustomerSelfCheckIn(qrPayload) {
     else if (hours >= 11 && hours < 16) currentMealType = "LUNCH";
     else if (hours >= 16 && hours < 23) currentMealType = "DINNER";
 
-    if (qrMealType !== currentMealType) {
-      throw new Error(`This QR is for ${qrMealType}, but it is currently ${currentMealType} hours.`);
-    }
-
     // Check customer subscription
     const subscription = await db.subscription.findFirst({
       where: { userId: user.id, businessId: business.id, status: "ACTIVE" }
     });
     if (!subscription) {
-      throw new Error("No active subscription plan found. Please contact admin.");
+      throw new Error("No active subscription plan found. Please contact admin to renew.");
     }
 
     const remainingMeals = subscription.mealCount - subscription.usedMeals;
     if (remainingMeals <= 0) {
       throw new Error("You have 0 meals remaining in your plan. Please renew.");
-    }
-
-    // Check duplicate check-in today for this meal type
-    const startOfDay = new Date();
-    startOfDay.setHours(0,0,0,0);
-    const endOfDay = new Date();
-    endOfDay.setHours(23,59,59,999);
-
-    const duplicateCheck = await db.mealLog.findFirst({
-      where: {
-        userId: user.id,
-        businessId: business.id,
-        mealType: currentMealType,
-        createdAt: { gte: startOfDay, lte: endOfDay }
-      }
-    });
-
-    if (duplicateCheck) {
-      throw new Error(`You have already checked in for ${currentMealType} today.`);
     }
 
     // Update subscription count
@@ -316,9 +298,12 @@ export async function recordCustomerSelfCheckIn(qrPayload) {
 
     return {
       success: true,
+      dinerName: user.name || user.email,
       mealType: currentMealType,
+      timestamp: log.createdAt,
       remainingMeals: newMealsLeft,
-      totalMeals: updatedSub.mealCount
+      totalMeals: updatedSub.mealCount,
+      businessName: business.name
     };
   } catch (error) {
     return { success: false, error: error.message };
