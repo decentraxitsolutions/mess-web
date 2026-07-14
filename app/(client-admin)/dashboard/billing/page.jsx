@@ -2,10 +2,17 @@ import { getBusinessBills } from "@/actions/billing";
 import { getBusinessCustomers } from "@/actions/customers";
 import BillingClient from "./BillingClient";
 import { ShieldAlert } from "lucide-react";
+import { checkUser } from "@/lib/checkUser";
+import { db } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
+  const user = await checkUser();
+  const business = await db.business.findUnique({
+    where: { ownerId: user?.id }
+  });
+
   const billsRes = await getBusinessBills();
   const customersRes = await getBusinessCustomers();
 
@@ -28,6 +35,7 @@ export default async function BillingPage() {
     <BillingClient 
       initialBills={billsRes.bills} 
       activeCustomers={activeCustomers} 
+      businessSettings={business}
     />
   );
 }

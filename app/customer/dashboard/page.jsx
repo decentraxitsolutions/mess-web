@@ -50,6 +50,30 @@ export default async function CustomerDashboardPage() {
         )}
       </div>
 
+      {/* Active Dine Pass Banner */}
+      {data.activeDinePass && (
+        <div className="bg-emerald-50 border-2 border-emerald-400 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md relative overflow-hidden">
+          <div className="absolute inset-0 border-4 border-emerald-400 opacity-10 animate-pulse rounded-2xl pointer-events-none" />
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <div>
+              <h3 className="font-extrabold text-emerald-950 text-sm">Active Dine Pass Available</h3>
+              <p className="text-xs text-emerald-800 font-medium font-sans">
+                Your last check-in was at {new Date(data.activeDinePass.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Token remains active for another {data.activeDinePass.expiresInMins} mins.
+              </p>
+            </div>
+          </div>
+          <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-9 shrink-0 shadow-md shadow-emerald-100 border-none cursor-pointer">
+            <Link href="/customer/scanner?showPass=true">
+              Show Dine Pass to Staff
+            </Link>
+          </Button>
+        </div>
+      )}
+
       {/* Dues Alert Banner */}
       {totalDueAmount > 0 && (
         <Alert variant="destructive" className="bg-red-50/70 border-red-200 text-red-900 shadow-md">
@@ -111,6 +135,45 @@ export default async function CustomerDashboardPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Operational Hours */}
+          <Card className="shadow-md bg-card">
+            <CardHeader className="py-3.5 border-b">
+              <CardTitle className="text-sm font-bold flex items-center gap-1.5">
+                <Clock className="h-4.5 w-4.5 text-indigo-500" /> Operational Hours
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs divide-y space-y-1">
+              <div className="flex justify-between items-center py-2.5">
+                <span className="text-muted-foreground font-medium">Check-In Status:</span>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  data.businessSettings?.qrScanEnabled 
+                    ? "bg-green-100 text-green-800" 
+                    : "bg-red-100 text-red-800"
+                }`}>
+                  {data.businessSettings?.qrScanEnabled ? "● OPEN" : "● CLOSED"}
+                </span>
+              </div>
+              {data.businessSettings?.breakfastEnabled && (
+                <div className="flex justify-between py-2.5">
+                  <span className="text-muted-foreground">Breakfast Period:</span>
+                  <span className="font-semibold">{data.businessSettings?.breakfastStart || "06:00"} - {data.businessSettings?.breakfastEnd || "11:00"}</span>
+                </div>
+              )}
+              {data.businessSettings?.lunchEnabled && (
+                <div className="flex justify-between py-2.5">
+                  <span className="text-muted-foreground">Lunch Period:</span>
+                  <span className="font-semibold">{data.businessSettings?.lunchStart || "11:00"} - {data.businessSettings?.lunchEnd || "16:00"}</span>
+                </div>
+              )}
+              {data.businessSettings?.dinnerEnabled && (
+                <div className="flex justify-between py-2.5">
+                  <span className="text-muted-foreground">Dinner Period:</span>
+                  <span className="font-semibold">{data.businessSettings?.dinnerStart || "16:00"} - {data.businessSettings?.dinnerEnd || "23:00"}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Package Details */}
           {activeSub && (

@@ -12,10 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Receipt, Plus, DollarSign, CreditCard, Clock, Printer, FileText } from "lucide-react";
 import { toast } from "sonner";
 
-export default function BillingClient({ initialBills, activeCustomers }) {
+export default function BillingClient({ initialBills, activeCustomers, businessSettings }) {
   const [bills, setBills] = useState(initialBills);
   const [activeTab, setActiveTab] = useState("invoices");
   const [loading, setLoading] = useState(false);
+
+  // Default parameters from settings
+  const defaultGstRate = businessSettings?.defaultGst || 0;
+  const defaultDueDays = businessSettings?.invoiceDueDays || 7;
+  const calculatedDefaultDueDate = new Date(Date.now() + defaultDueDays * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   // Custom Bill Form States
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -23,7 +28,16 @@ export default function BillingClient({ initialBills, activeCustomers }) {
   const [extraCharges, setExtraCharges] = useState("0");
   const [discount, setDiscount] = useState("0");
   const [gst, setGst] = useState("0");
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState(calculatedDefaultDueDate);
+
+  const handleBillAmountChange = (val) => {
+    setBillAmount(val);
+    const amountNum = parseFloat(val) || 0;
+    if (defaultGstRate > 0) {
+      const calculatedGst = (amountNum * defaultGstRate) / 100;
+      setGst(calculatedGst.toFixed(2));
+    }
+  };
 
   // Record Payment Modal States
   const [selectedBillForPayment, setSelectedBillForPayment] = useState(null);
@@ -235,7 +249,7 @@ export default function BillingClient({ initialBills, activeCustomers }) {
                       type="number" 
                       required 
                       value={billAmount} 
-                      onChange={(e) => setBillAmount(e.target.value)} 
+                      onChange={(e) => handleBillAmountChange(e.target.value)} 
                       placeholder="E.g. 500" 
                     />
                   </div>

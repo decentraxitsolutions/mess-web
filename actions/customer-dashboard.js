@@ -55,6 +55,24 @@ export async function getCustomerDashboardData() {
       }
     });
 
+    const latestLog = logs[0] || null;
+    let activeDinePass = null;
+    if (latestLog) {
+      const passDurationMins = business.dinePassDurationMins || 30;
+      const differenceMins = (Date.now() - new Date(latestLog.createdAt).getTime()) / (1000 * 60);
+      if (differenceMins < passDurationMins) {
+        activeDinePass = {
+          dinerName: user.name || user.email,
+          mealType: latestLog.mealType,
+          timestamp: latestLog.createdAt,
+          remainingMeals: subscription ? (subscription.mealCount - subscription.usedMeals) : 0,
+          totalMeals: subscription ? subscription.mealCount : 0,
+          businessName: business.name,
+          expiresInMins: Math.max(1, Math.round(passDurationMins - differenceMins))
+        };
+      }
+    }
+
     return {
       success: true,
       data: {
@@ -66,7 +84,20 @@ export async function getCustomerDashboardData() {
         logs,
         bills,
         notifications,
-        dailyMenu
+        dailyMenu,
+        activeDinePass,
+        businessSettings: {
+          qrScanEnabled: business.qrScanEnabled,
+          breakfastEnabled: business.breakfastEnabled,
+          breakfastStart: business.breakfastStart,
+          breakfastEnd: business.breakfastEnd,
+          lunchEnabled: business.lunchEnabled,
+          lunchStart: business.lunchStart,
+          lunchEnd: business.lunchEnd,
+          dinnerEnabled: business.dinnerEnabled,
+          dinnerStart: business.dinnerStart,
+          dinnerEnd: business.dinnerEnd,
+        }
       }
     };
   } catch (error) {

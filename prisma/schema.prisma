@@ -68,6 +68,29 @@ model Business {
   menus         Menu[]
   plans         SubscriptionPlan[]
   
+  // Settings fields
+  qrScanEnabled    Boolean  @default(true)
+  
+  // Time period settings (strings in format "HH:MM", e.g., "07:00", "11:30", "18:00")
+  breakfastEnabled Boolean  @default(true)
+  breakfastStart   String   @default("06:00")
+  breakfastEnd     String   @default("11:00")
+  
+  lunchEnabled     Boolean  @default(true)
+  lunchStart       String   @default("11:00")
+  lunchEnd         String   @default("16:00")
+  
+  dinnerEnabled    Boolean  @default(true)
+  dinnerStart      String   @default("16:00")
+  dinnerEnd        String   @default("23:00")
+
+  // Dine Pass Validity settings
+  dinePassDurationMins Int  @default(30)     // Pass validity duration in minutes
+
+  // Invoice settings
+  defaultGst       Float    @default(0.0)    // Default GST percentage
+  invoiceDueDays   Int      @default(7)      // Default payment due buffer in days
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

@@ -124,7 +124,7 @@ export async function assignSubscriptionToCustomer(customerId, planDetails) {
         paidAmount: planDetails.paidImmediately ? totalAmount : 0,
         remainingAmount: planDetails.paidImmediately ? 0 : totalAmount,
         status: planDetails.paidImmediately ? "PAID" : "UNPAID",
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        dueDate: new Date(Date.now() + (business.invoiceDueDays || 7) * 24 * 60 * 60 * 1000)
       }
     });
 

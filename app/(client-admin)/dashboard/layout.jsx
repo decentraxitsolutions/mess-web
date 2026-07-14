@@ -12,7 +12,8 @@ import {
   History, 
   QrCode,
   Menu,
-  X
+  X,
+  Settings
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -26,6 +27,7 @@ const menuItems = [
   { label: "Billing & Invoices", href: "/dashboard/billing", icon: Receipt },
   { label: "Menu Planner", href: "/dashboard/menu", icon: Utensils },
   { label: "Meal Logs", href: "/dashboard/meals", icon: History },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export default function DashboardLayout({ children }) {

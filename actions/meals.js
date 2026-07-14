@@ -241,13 +241,50 @@ export async function recordCustomerSelfCheckIn(qrPayload) {
       throw new Error("You have already checked in within the last 3 hours.");
     }
 
-    // Detect active meal type for logging metadata based on current time
+    // Check if QR scanning is enabled by the owner
+    if (!business.qrScanEnabled) {
+      throw new Error("Mess is currently closed by the owner (QR check-ins disabled).");
+    }
+
+    // Detect active meal type based on custom settings slots
     const now = new Date();
-    const hours = now.getHours();
-    let currentMealType = "LUNCH";
-    if (hours >= 6 && hours < 11) currentMealType = "BREAKFAST";
-    else if (hours >= 11 && hours < 16) currentMealType = "LUNCH";
-    else if (hours >= 16 && hours < 23) currentMealType = "DINNER";
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const parseTimeToMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const [hrs, mins] = timeStr.split(":").map(Number);
+      return hrs * 60 + mins;
+    };
+
+    const bStart = parseTimeToMinutes(business.breakfastStart || "06:00");
+    const bEnd = parseTimeToMinutes(business.breakfastEnd || "11:00");
+    const lStart = parseTimeToMinutes(business.lunchStart || "11:00");
+    const lEnd = parseTimeToMinutes(business.lunchEnd || "16:00");
+    const dStart = parseTimeToMinutes(business.dinnerStart || "16:00");
+    const dEnd = parseTimeToMinutes(business.dinnerEnd || "23:00");
+
+    let currentMealType = null;
+
+    if ((business.breakfastEnabled ?? true) && currentMinutes >= bStart && currentMinutes < bEnd) {
+      currentMealType = "BREAKFAST";
+    } else if ((business.lunchEnabled ?? true) && currentMinutes >= lStart && currentMinutes < lEnd) {
+      currentMealType = "LUNCH";
+    } else if ((business.dinnerEnabled ?? true) && currentMinutes >= dStart && currentMinutes < dEnd) {
+      currentMealType = "DINNER";
+    }
+
+    if (!currentMealType) {
+      const activeWindows = [];
+      if (business.breakfastEnabled ?? true) activeWindows.push(`Breakfast (${business.breakfastStart || "06:00"}-${business.breakfastEnd || "11:00"})`);
+      if (business.lunchEnabled ?? true) activeWindows.push(`Lunch (${business.lunchStart || "11:00"}-${business.lunchEnd || "16:00"})`);
+      if (business.dinnerEnabled ?? true) activeWindows.push(`Dinner (${business.dinnerStart || "16:00"}-${business.dinnerEnd || "23:00"})`);
+      
+      throw new Error(
+        activeWindows.length > 0 
+          ? `Outside Mess Hours. Active Slots: ${activeWindows.join(", ")}.`
+          : "Mess is currently not serving any meals (all slots disabled)."
+      );
+    }
 
     // Check customer subscription
     const subscription = await db.subscription.findFirst({

@@ -9,9 +9,11 @@ import { QrCode, ShieldAlert, CheckCircle, AlertTriangle, Scan, Keyboard, Calend
 import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
 
-export default function ScannerClient({ messUniqueId, messName }) {
+export default function ScannerClient({ messUniqueId, messName, initialActivePass }) {
   const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState(null); // { success: boolean, ... }
+  const [feedback, setFeedback] = useState(
+    initialActivePass ? { success: true, ...initialActivePass } : null
+  );
   const [useManualInput, setUseManualInput] = useState(false);
   const [scanSessionKey, setScanSessionKey] = useState(0);
   

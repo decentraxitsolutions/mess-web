@@ -87,7 +87,7 @@ export async function approveCustomerRegistration(customerId, subData) {
         extraCharges: 0,
         gst: 0,
         status: "UNPAID",
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+        dueDate: new Date(Date.now() + (business.invoiceDueDays || 7) * 24 * 60 * 60 * 1000) // custom buffer from settings
       }
     });
 
@@ -262,7 +262,7 @@ export async function manuallyAddCustomer(customerData, subData) {
         paidAmount: customerData.paidImmediately ? totalAmount : 0,
         remainingAmount: customerData.paidImmediately ? 0 : totalAmount,
         status: customerData.paidImmediately ? "PAID" : "UNPAID",
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        dueDate: new Date(Date.now() + (business.invoiceDueDays || 7) * 24 * 60 * 60 * 1000)
       }
     });
 
