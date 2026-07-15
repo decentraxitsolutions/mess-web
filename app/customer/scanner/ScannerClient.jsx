@@ -179,7 +179,7 @@ export default function ScannerClient({ messUniqueId, messName, initialActivePas
             <div>
               <span className="text-[10px] text-emerald-700 block uppercase font-bold tracking-wider mb-0.5">Check-in Time</span>
               <span className="font-mono font-bold text-sm text-emerald-950">
-                {new Date(feedback.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {new Date(feedback.timestamp).toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             </div>
           </div>

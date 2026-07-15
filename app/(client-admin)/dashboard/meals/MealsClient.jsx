@@ -125,11 +125,11 @@ export default function MealsClient({ initialLogs, filteredDate }) {
                             {log.mealType}
                           </span>
                         </TableCell>
-                        <TableCell className="text-xs text-foreground font-medium">
-                          {dateObj.toLocaleDateString()}
+                         <TableCell className="text-xs text-foreground font-medium">
+                          {dateObj.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" })}
                         </TableCell>
                         <TableCell className="text-xs font-mono text-muted-foreground">
-                          {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          {dateObj.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </TableCell>
                       </TableRow>
                     );

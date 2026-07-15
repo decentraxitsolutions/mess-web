@@ -66,9 +66,11 @@ export default async function CustomerMealsPage() {
                             {log.mealType}
                           </span>
                         </TableCell>
-                        <TableCell className="font-medium text-foreground">{dateObj.toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium text-foreground">
+                          {dateObj.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" })}
+                        </TableCell>
                         <TableCell className="font-mono text-muted-foreground text-xs">
-                          {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          {dateObj.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </TableCell>
                         <TableCell>
                           <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">

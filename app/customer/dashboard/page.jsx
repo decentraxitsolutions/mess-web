@@ -62,7 +62,7 @@ export default async function CustomerDashboardPage() {
             <div>
               <h3 className="font-extrabold text-emerald-950 text-sm">Active Dine Pass Available</h3>
               <p className="text-xs text-emerald-800 font-medium font-sans">
-                Your last check-in was at {new Date(data.activeDinePass.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Token remains active for another {data.activeDinePass.expiresInMins} mins.
+                Your last check-in was at {new Date(data.activeDinePass.timestamp).toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: '2-digit', minute: '2-digit' })}. Token remains active for another {data.activeDinePass.expiresInMins} mins.
               </p>
             </div>
           </div>
