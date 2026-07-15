@@ -8,16 +8,26 @@ import { QrCode, Clock, RefreshCw, CheckCircle2, ShieldAlert } from "lucide-reac
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
+const getTodayKolkataString = () => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+};
+
 export default function AdminQRConsolePage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeMealType, setActiveMealType] = useState("LUNCH");
+  const [selectedDate, setSelectedDate] = useState(getTodayKolkataString());
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (dateVal = selectedDate, showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
-      const res = await getScannerQRData();
+      const res = await getScannerQRData(dateVal);
       if (res.success) {
         setData(res);
       } else {
@@ -26,7 +36,7 @@ export default function AdminQRConsolePage() {
     } catch (e) {
       toast.error("Error fetching scanner details.");
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
@@ -49,15 +59,16 @@ export default function AdminQRConsolePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Initial data load
+  // Initial data load and polling
   useEffect(() => {
-    loadData();
-    // Auto-refresh logs every 8 seconds for a live-like feel
+    loadData(selectedDate, true);
+    
     const logPoll = setInterval(() => {
-      loadData();
+      loadData(selectedDate, false);
     }, 8000);
+    
     return () => clearInterval(logPoll);
-  }, []);
+  }, [selectedDate]);
 
   if (loading && !data) {
     return (
@@ -89,15 +100,23 @@ export default function AdminQRConsolePage() {
           <h1 className="text-3xl font-bold tracking-tight">Dine Check-In QR Console</h1>
           <p className="text-muted-foreground">Display this QR code for customers to scan and log their meals.</p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={loadData}
-          disabled={loading}
-          className="gap-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Force Refresh
-        </Button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="flex h-10 rounded-md border border-indigo-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 font-semibold text-indigo-950"
+          />
+          <Button 
+            variant="outline" 
+            onClick={() => loadData(selectedDate, true)}
+            disabled={loading}
+            className="gap-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-5">
@@ -164,12 +183,12 @@ export default function AdminQRConsolePage() {
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
                 Live Check-ins
               </CardTitle>
-              <CardDescription>Real-time diner check-in confirmations</CardDescription>
+              <CardDescription>Check-in confirmations for {data.filteredDate}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto pt-4">
               {data.logs.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground text-xs border border-dashed rounded-xl h-full flex flex-col items-center justify-center">
-                  No check-ins recorded yet today.
+                  No check-ins recorded on {data.filteredDate}.
                 </div>
               ) : (
                 <div className="space-y-4">

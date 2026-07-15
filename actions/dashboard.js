@@ -4,7 +4,17 @@ import { db } from "@/lib/prisma";
 import { checkUser } from "@/lib/checkUser";
 import { startOfDay, endOfDay } from "date-fns";
 
-export async function getAdminDashboardStats() {
+function getKolkataDateStr(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  return formatter.format(date);
+}
+
+export async function getAdminDashboardStats(dateStr) {
   try {
     const user = await checkUser();
     if (!user || user.role !== "CLIENT_ADMIN") throw new Error("Unauthorized");
@@ -33,24 +43,31 @@ export async function getAdminDashboardStats() {
     const totalRevenue = bills.reduce((sum, b) => sum + b.paidAmount, 0);
     const pendingRevenue = bills.reduce((sum, b) => sum + b.remainingAmount, 0);
 
-    // 3. Today's meals served
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
-    const mealsServedToday = await db.mealLog.count({
+    // 3. Date localized filtering
+    const targetDateStr = dateStr || getKolkataDateStr();
+    const startOfKolkataDay = new Date(`${targetDateStr}T00:00:00+05:30`);
+    const endOfKolkataDay = new Date(`${targetDateStr}T23:59:59.999+05:30`);
+
+    const mealsServedOnDate = await db.mealLog.count({
       where: {
         businessId,
         createdAt: {
-          gte: todayStart,
-          lte: todayEnd
+          gte: startOfKolkataDay,
+          lte: endOfKolkataDay
         }
       }
     });
 
-    // 4. Recent scans (last 5)
-    const recentScans = await db.mealLog.findMany({
-      where: { businessId },
+    // 4. Scans on Target Date (up to 50 for detailed review)
+    const dateScans = await db.mealLog.findMany({
+      where: {
+        businessId,
+        createdAt: {
+          gte: startOfKolkataDay,
+          lte: endOfKolkataDay
+        }
+      },
       orderBy: { createdAt: "desc" },
-      take: 5,
       include: {
         user: true
       }
@@ -78,8 +95,9 @@ export async function getAdminDashboardStats() {
         pendingCustomers,
         totalRevenue,
         pendingRevenue,
-        mealsServedToday,
-        recentScans: recentScans.map(s => ({
+        mealsServedOnDate,
+        filteredDate: targetDateStr,
+        recentScans: dateScans.map(s => ({
           id: s.id,
           userName: s.user.name || s.user.email,
           mealType: s.mealType,

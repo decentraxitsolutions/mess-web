@@ -7,12 +7,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { History, Search, Calendar } from "lucide-react";
 
-export default function MealsClient({ initialLogs }) {
-  const [logs, setLogs] = useState(initialLogs);
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
+
+export default function MealsClient({ initialLogs, filteredDate }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [selectedDate, setSelectedDate] = useState(filteredDate);
   const [search, setSearch] = useState("");
   const [mealFilter, setMealFilter] = useState("ALL");
 
-  const filteredLogs = logs.filter((log) => {
+  useEffect(() => {
+    setSelectedDate(filteredDate);
+  }, [filteredDate]);
+
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    if (newDate) {
+      router.push(`${pathname}?date=${newDate}`);
+    }
+  };
+
+  const filteredLogs = initialLogs.filter((log) => {
     const name = (log.user.name || "").toLowerCase();
     const email = (log.user.email || "").toLowerCase();
     const term = search.toLowerCase();
@@ -48,6 +64,16 @@ export default function MealsClient({ initialLogs }) {
               />
             </div>
             
+            <div className="w-full sm:w-48 relative">
+              <Calendar className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="pl-10 h-10"
+              />
+            </div>
+
             <div className="w-full sm:w-48">
               <select
                 value={mealFilter}

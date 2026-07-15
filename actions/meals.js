@@ -4,7 +4,32 @@ import { db } from "@/lib/prisma";
 import { checkUser } from "@/lib/checkUser";
 import { revalidatePath } from "next/cache";
 
-export async function getBusinessMealLogs() {
+// Helper to get today's date string in Asia/Kolkata timezone (YYYY-MM-DD)
+function getKolkataDateStr(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  return formatter.format(date);
+}
+
+// Helper to get today's hours and minutes in Asia/Kolkata timezone
+function getKolkataTime(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false
+  });
+  const parts = formatter.formatToParts(date);
+  const hour = parseInt(parts.find(p => p.type === "hour").value, 10);
+  const minute = parseInt(parts.find(p => p.type === "minute").value, 10);
+  return { hour, minute };
+}
+
+export async function getBusinessMealLogs(dateStr) {
   try {
     const user = await checkUser();
     if (!user || user.role !== "CLIENT_ADMIN") throw new Error("Unauthorized");
@@ -14,15 +39,25 @@ export async function getBusinessMealLogs() {
     });
     if (!business) throw new Error("Business not found");
 
+    const targetDateStr = dateStr || getKolkataDateStr();
+    const startOfKolkataDay = new Date(`${targetDateStr}T00:00:00+05:30`);
+    const endOfKolkataDay = new Date(`${targetDateStr}T23:59:59.999+05:30`);
+
     const logs = await db.mealLog.findMany({
-      where: { businessId: business.id },
+      where: {
+        businessId: business.id,
+        createdAt: {
+          gte: startOfKolkataDay,
+          lte: endOfKolkataDay
+        }
+      },
       include: {
         user: true
       },
       orderBy: { createdAt: "desc" }
     });
 
-    return { success: true, logs };
+    return { success: true, logs, filteredDate: targetDateStr };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -248,7 +283,8 @@ export async function recordCustomerSelfCheckIn(qrPayload) {
 
     // Detect active meal type based on custom settings slots
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const kolkataTime = getKolkataTime(now);
+    const currentMinutes = kolkataTime.hour * 60 + kolkataTime.minute;
 
     const parseTimeToMinutes = (timeStr) => {
       if (!timeStr) return 0;
@@ -347,7 +383,7 @@ export async function recordCustomerSelfCheckIn(qrPayload) {
   }
 }
 
-export async function getScannerQRData() {
+export async function getScannerQRData(dateStr) {
   try {
     const user = await checkUser();
     if (!user || user.role !== "CLIENT_ADMIN") throw new Error("Unauthorized");
@@ -357,19 +393,29 @@ export async function getScannerQRData() {
     });
     if (!business) throw new Error("Mess not found");
 
-    // Fetch last 5 check-in logs for display on scanner screen
+    const targetDateStr = dateStr || getKolkataDateStr();
+    const startOfKolkataDay = new Date(`${targetDateStr}T00:00:00+05:30`);
+    const endOfKolkataDay = new Date(`${targetDateStr}T23:59:59.999+05:30`);
+
+    // Fetch check-in logs filtered by date for display on scanner screen
     const logs = await db.mealLog.findMany({
-      where: { businessId: business.id },
+      where: { 
+        businessId: business.id,
+        createdAt: {
+          gte: startOfKolkataDay,
+          lte: endOfKolkataDay
+        }
+      },
       include: { user: true },
-      orderBy: { createdAt: "desc" },
-      take: 5
+      orderBy: { createdAt: "desc" }
     });
 
     return { 
       success: true, 
       uniqueId: business.uniqueId, 
       name: business.name,
-      logs 
+      logs,
+      filteredDate: targetDateStr
     };
   } catch (error) {
     return { success: false, error: error.message };

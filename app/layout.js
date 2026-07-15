@@ -12,6 +12,7 @@ export const metadata = {
 };
 
 import { Toaster } from "sonner";
+import FoodBackground from "@/components/FoodBackground";
 
 export default function RootLayout({ children }) {
   return (
@@ -20,7 +21,8 @@ export default function RootLayout({ children }) {
         lang="en"
         className={inter.className}
       >
-        <body className="min-h-full flex flex-col">
+        <body className="min-h-full flex flex-col relative">
+          <FoodBackground />
           {children}
           <Toaster position="top-right" richColors />
         </body>

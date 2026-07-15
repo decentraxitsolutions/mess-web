@@ -30,7 +30,7 @@ export default async function CustomerLayout({ children }) {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/10">
+    <div className="flex min-h-screen flex-col bg-transparent">
       <Header user={user} />
       
       {/* Sub-nav banner for Customers */}

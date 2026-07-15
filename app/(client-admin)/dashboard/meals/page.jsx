@@ -4,8 +4,10 @@ import { ShieldAlert } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function MealsPage() {
-  const res = await getBusinessMealLogs();
+export default async function MealsPage({ searchParams }) {
+  const params = await searchParams;
+  const dateStr = params?.date || "";
+  const res = await getBusinessMealLogs(dateStr);
 
   if (!res.success) {
     return (
@@ -17,5 +19,5 @@ export default async function MealsPage() {
     );
   }
 
-  return <MealsClient initialLogs={res.logs} />;
+  return <MealsClient initialLogs={res.logs} filteredDate={res.filteredDate} />;
 }

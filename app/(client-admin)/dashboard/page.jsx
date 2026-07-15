@@ -7,8 +7,12 @@ import { formatDistanceToNow } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const res = await getAdminDashboardStats();
+import DashboardDateFilter from "./DashboardDateFilter";
+
+export default async function DashboardPage({ searchParams }) {
+  const params = await searchParams;
+  const dateStr = params?.date || "";
+  const res = await getAdminDashboardStats(dateStr);
   if (!res.success) {
     return (
       <div className="flex h-[50vh] flex-col items-center justify-center gap-4 text-center">
@@ -25,15 +29,16 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       {/* Header Banner */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white shadow-xl">
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-extrabold tracking-tight">{stats.businessName}</h1>
           <p className="mt-1.5 text-indigo-100 font-medium">
             Mess ID: <span className="bg-white/20 px-2 py-0.5 rounded text-white font-mono tracking-wider">{stats.uniqueId}</span>
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <DashboardDateFilter initialDate={stats.filteredDate} />
           <Link href="/dashboard/scanner">
-            <Button className="bg-white text-indigo-600 hover:bg-indigo-50 font-bold rounded-full px-5">
+            <Button className="bg-white text-indigo-600 hover:bg-indigo-50 font-bold rounded-full px-5 h-10 w-full sm:w-auto cursor-pointer border-none shadow-md">
               Launch Scanner Console
             </Button>
           </Link>
@@ -61,13 +66,13 @@ export default async function DashboardPage() {
         {/* Meals Served Today */}
         <Card className="shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Meals Served Today</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Meals Served</CardTitle>
             <Utensils className="h-5 w-5 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-extrabold tracking-tight">{stats.mealsServedToday}</div>
+            <div className="text-3xl font-extrabold tracking-tight">{stats.mealsServedOnDate}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Fresh scans recorded today
+              Scans recorded on {stats.filteredDate}
             </p>
           </CardContent>
         </Card>
@@ -106,11 +111,11 @@ export default async function DashboardPage() {
         <Card className="col-span-4 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-lg font-bold">Recent Scans</CardTitle>
-              <CardDescription>Latest scan-ins by your customers</CardDescription>
+              <CardTitle className="text-lg font-bold">Scans Recorded</CardTitle>
+              <CardDescription>Dine check-ins on {stats.filteredDate}</CardDescription>
             </div>
-            <Link href="/dashboard/meals">
-              <Button variant="ghost" size="sm" className="gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-semibold">
+            <Link href={`/dashboard/meals?date=${stats.filteredDate}`}>
+              <Button variant="ghost" size="sm" className="gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-semibold cursor-pointer">
                 View All <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
