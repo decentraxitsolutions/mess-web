@@ -48,7 +48,8 @@ export async function updateBusinessSettings(data) {
         dinnerEnd: data.dinnerEnd,
         dinePassDurationMins: parseInt(data.dinePassDurationMins) || 30,
         defaultGst: parseFloat(data.defaultGst) || 0.0,
-        invoiceDueDays: parseInt(data.invoiceDueDays) || 7
+        invoiceDueDays: parseInt(data.invoiceDueDays) || 7,
+        upiId: data.upiId || null
       }
     });
 

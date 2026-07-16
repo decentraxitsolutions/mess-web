@@ -47,6 +47,7 @@ model User {
   mealLogs      MealLog[]
   bills         Bill[]
   notifications Notification[]
+  subscriptionRequests SubscriptionRequest[]
 }
 
 model Business {
@@ -67,6 +68,7 @@ model Business {
   bills         Bill[]
   menus         Menu[]
   plans         SubscriptionPlan[]
+  subscriptionRequests SubscriptionRequest[]
   
   // Settings fields
   qrScanEnabled    Boolean  @default(true)
@@ -90,6 +92,7 @@ model Business {
   // Invoice settings
   defaultGst       Float    @default(0.0)    // Default GST percentage
   invoiceDueDays   Int      @default(7)      // Default payment due buffer in days
+  upiId            String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -203,4 +206,19 @@ model SubscriptionPlan {
   updatedAt     DateTime @updatedAt
 
   business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  requests      SubscriptionRequest[]
+}
+
+model SubscriptionRequest {
+  id            String   @id @default(uuid())
+  userId        String
+  businessId    String
+  planId        String
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business      Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan          SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 }

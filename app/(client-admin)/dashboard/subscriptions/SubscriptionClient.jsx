@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { createSubscriptionPlan, deleteSubscriptionPlan, assignSubscriptionToCustomer } from "@/actions/subscriptions";
+import { 
+  createSubscriptionPlan, 
+  deleteSubscriptionPlan, 
+  assignSubscriptionToCustomer,
+  approveSubscriptionRequest,
+  rejectSubscriptionRequest
+} from "@/actions/subscriptions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, ShieldAlert, Award, Calendar, DollarSign, Layers } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-export default function SubscriptionClient({ initialPlans, activeCustomers }) {
+export default function SubscriptionClient({ initialPlans, activeCustomers, pendingRequests }) {
+  const router = useRouter();
   const [plans, setPlans] = useState(initialPlans);
+  const [pendingRequestsList, setPendingRequestsList] = useState(pendingRequests || []);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("plans");
 
@@ -123,6 +132,43 @@ export default function SubscriptionClient({ initialPlans, activeCustomers }) {
     }
   };
 
+  const handleApproveRequest = async (reqId) => {
+    setLoading(true);
+    try {
+      const res = await approveSubscriptionRequest(reqId);
+      if (res.success) {
+        toast.success("Subscription request approved and activated!");
+        setPendingRequestsList(prev => prev.filter(r => r.id !== reqId));
+        router.refresh();
+      } else {
+        toast.error(res.error || "Failed to approve request.");
+      }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectRequest = async (reqId) => {
+    if (!confirm("Are you sure you want to decline this plan request?")) return;
+    setLoading(true);
+    try {
+      const res = await rejectSubscriptionRequest(reqId);
+      if (res.success) {
+        toast.success("Subscription request declined.");
+        setPendingRequestsList(prev => prev.filter(r => r.id !== reqId));
+        router.refresh();
+      } else {
+        toast.error(res.error || "Failed to decline request.");
+      }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -131,10 +177,20 @@ export default function SubscriptionClient({ initialPlans, activeCustomers }) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="bg-card border p-1 rounded-lg">
-          <TabsTrigger value="plans" className="rounded-md">Subscription Plans ({plans.length})</TabsTrigger>
-          <TabsTrigger value="create" className="rounded-md">Create Plan</TabsTrigger>
-          <TabsTrigger value="assign" className="rounded-md">Assign Subscriptions</TabsTrigger>
+        <TabsList className="bg-card border p-1.5 rounded-lg flex-wrap h-auto gap-1">
+          <TabsTrigger value="plans" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5">Subscription Plans ({plans.length})</TabsTrigger>
+          <TabsTrigger value="create" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5">Create Plan</TabsTrigger>
+          <TabsTrigger value="assign" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5">Assign Subscriptions</TabsTrigger>
+          <TabsTrigger value="requests" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5 relative flex items-center gap-1.5">
+            Requests
+            {pendingRequestsList.length > 0 ? (
+              <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-extrabold text-white animate-pulse">
+                {pendingRequestsList.length}
+              </span>
+            ) : (
+              <span>(0)</span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* LIST PLANS */}
@@ -399,6 +455,76 @@ export default function SubscriptionClient({ initialPlans, activeCustomers }) {
               </CardFooter>
             </form>
           </Card>
+        </TabsContent>
+
+        {/* PENDING REQUESTS APPROVAL TAB */}
+        <TabsContent value="requests">
+          {pendingRequestsList.length === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed rounded-xl bg-card">
+              <Layers className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+              <h3 className="font-bold text-lg">No Pending Requests</h3>
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto mt-1">
+                All customer subscription requests have been processed.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2">
+              {pendingRequestsList.map((req) => (
+                <Card key={req.id} className="shadow-md border-l-4 border-l-amber-500 bg-card">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg font-bold text-foreground">{req.user.name || req.user.email}</CardTitle>
+                        <CardDescription className="text-xs">{req.user.email}</CardDescription>
+                      </div>
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-extrabold text-amber-700">
+                        PENDING REVIEW
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-2 text-xs">
+                    <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-3 text-xs flex justify-between items-center">
+                      <span className="font-semibold text-indigo-950">Requested Plan:</span>
+                      <span className="font-bold text-indigo-700">{req.plan.name}</span>
+                    </div>
+                    <div className="space-y-1.5 font-semibold text-neutral-700">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Meals Count:</span>
+                        <span>{req.plan.mealCount} Meals</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total Price:</span>
+                        <span>₹{req.plan.totalAmount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Validity Limit:</span>
+                        <span>{req.plan.validityDays} Days</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-2 border-t flex justify-end gap-2 px-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs font-bold hover:bg-red-50 hover:text-red-700 border-neutral-200 cursor-pointer"
+                      onClick={() => handleRejectRequest(req.id)}
+                      disabled={loading}
+                    >
+                      Decline
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer border-none shadow-md shadow-indigo-100"
+                      onClick={() => handleApproveRequest(req.id)}
+                      disabled={loading}
+                    >
+                      Approve & Activate
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

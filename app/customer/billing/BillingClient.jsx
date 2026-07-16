@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Receipt, FileText, Printer, ShieldAlert } from "lucide-react";
 
-export default function BillingClient({ initialBills }) {
+export default function BillingClient({ initialBills, businessSettings }) {
   const [bills, setBills] = useState(initialBills);
   const [selectedBillForPrint, setSelectedBillForPrint] = useState(null);
 
@@ -194,6 +194,21 @@ export default function BillingClient({ initialBills }) {
                   <p className="text-amber-700 text-base font-bold">₹{selectedBillForPrint.remainingAmount}</p>
                 </div>
               </div>
+
+              {/* UPI Amount QR Section */}
+              {businessSettings?.upiId && selectedBillForPrint.status !== "PAID" && selectedBillForPrint.remainingAmount > 0 && (
+                <div className="flex flex-col items-center justify-center p-4 border border-dashed rounded-lg bg-neutral-50/50 mt-4">
+                  <p className="text-[10px] font-extrabold text-indigo-950 mb-1.5 tracking-wider uppercase">SCAN TO PAY UPI</p>
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                      `upi://pay?pa=${businessSettings.upiId}&pn=${encodeURIComponent(businessSettings.name || "Mess Payment")}&am=${selectedBillForPrint.remainingAmount}&cu=INR`
+                    )}`}
+                    alt="UPI Payment QR"
+                    className="h-32 w-32 bg-white p-1.5 border rounded-lg shadow-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1.5 font-mono">{businessSettings.upiId}</p>
+                </div>
+              )}
 
               {/* Print Footer buttons */}
               <div className="flex justify-end gap-2 pt-6 border-t print:hidden">

@@ -1,6 +1,6 @@
 import { getCustomerMenu } from "@/actions/menu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Utensils, CalendarDays, ShieldAlert, Award } from "lucide-react";
+import { Utensils, CalendarDays, ShieldAlert, Award, Sparkles } from "lucide-react";
 
 const DAYS_OF_WEEK = [
   "MONDAY",
@@ -47,12 +47,59 @@ export default async function CustomerMenuPage() {
   const dailyMenu = menuItems.find(item => item.type === "DAILY" && item.status === "ACTIVE");
   const weeklyMenu = menuItems.filter(item => item.type === "WEEKLY" && item.status === "ACTIVE");
 
+  // Helper to format date strings for comparison in Asia/Kolkata
+  const getKolkataDateString = (date) => {
+    return new Date(date).toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
+  };
+
+  const todayStr = getKolkataDateString(new Date());
+
+  // Find active festival menu scheduled for today
+  const todayFestivalMenu = menuItems.find(item => 
+    item.type === "FESTIVAL" && 
+    item.status === "ACTIVE" && 
+    getKolkataDateString(item.date) === todayStr
+  );
+
+  // Find all festival menus scheduled for the current month
+  const todayObj = new Date();
+  const formatterMonth = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", month: "numeric" });
+  const formatterYear = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", year: "numeric" });
+  const currentMonth = formatterMonth.format(todayObj);
+  const currentYear = formatterYear.format(todayObj);
+
+  const monthlyFestivalMenus = menuItems.filter(item => {
+    if (item.type !== "FESTIVAL" || item.status !== "ACTIVE") return false;
+    const itemDate = new Date(item.date);
+    const itemMonth = formatterMonth.format(itemDate);
+    const itemYear = formatterYear.format(itemDate);
+    return itemMonth === currentMonth && itemYear === currentYear;
+  }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Today's Menu & Schedule</h1>
         <p className="text-muted-foreground">Keep track of your weekly meal plans and check daily specials.</p>
       </div>
+
+      {/* Today's Festival Menu Banner */}
+      {todayFestivalMenu && (
+        <Card className="border-amber-200 bg-amber-50/20 shadow-md border-2 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/10 to-transparent rounded-bl-full pointer-events-none" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+              <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" /> Today's Festival Special Feast!
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <h3 className="text-xl font-extrabold text-amber-950">{todayFestivalMenu.title}</h3>
+            <p className="text-sm text-neutral-800 leading-relaxed font-medium">
+              {todayFestivalMenu.description}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Daily Special Banner */}
       {dailyMenu && (
@@ -114,6 +161,41 @@ export default async function CustomerMenuPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Festivals & Special Events of the Month */}
+      {monthlyFestivalMenus.length > 0 && (
+        <Card className="shadow-md bg-card border-amber-100">
+          <CardHeader className="pb-3 border-b">
+            <CardTitle className="text-xl font-bold flex items-center gap-2 text-amber-900">
+              <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" /> Festival & Event Specials This Month
+            </CardTitle>
+            <CardDescription>Plan your month with upcoming festival feasts</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {monthlyFestivalMenus.map((item) => {
+                const isToday = getKolkataDateString(item.date) === todayStr;
+                return (
+                  <div key={item.id} className={`rounded-xl border p-4 transition-all ${isToday ? "bg-amber-50/30 border-amber-300 shadow-sm" : "bg-card border-neutral-100 shadow-sm"}`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                        {new Date(item.date).toLocaleDateString("en-US", { timeZone: "Asia/Kolkata", dateStyle: "medium" })}
+                      </span>
+                      {isToday && (
+                        <span className="text-[10px] font-bold text-amber-600 animate-pulse uppercase">TODAY</span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <h4 className="font-extrabold text-sm text-neutral-800">{item.title}</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

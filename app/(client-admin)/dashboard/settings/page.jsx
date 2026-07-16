@@ -38,6 +38,7 @@ export default async function SettingsPage() {
         dinePassDurationMins: business.dinePassDurationMins ?? 30,
         defaultGst: business.defaultGst || 0,
         invoiceDueDays: business.invoiceDueDays || 7,
+        upiId: business.upiId || "",
         uniqueId: business.uniqueId || ""
       }}
     />

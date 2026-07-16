@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Check, X, ShieldAlert, UserMinus, ToggleLeft, ToggleRight, UserCheck, Plus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function CustomerClient({ initialCustomers }) {
+export default function CustomerClient({ initialCustomers, plans = [] }) {
   const [customers, setCustomers] = useState(initialCustomers);
   const [activeTab, setActiveTab] = useState("active");
   const [loading, setLoading] = useState(false);
@@ -35,11 +35,24 @@ export default function CustomerClient({ initialCustomers }) {
   const [addName, setAddName] = useState("");
   const [addEmail, setAddEmail] = useState("");
   const [addPhone, setAddPhone] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
   const [addMealCount, setAddMealCount] = useState(56);
   const [addMealPrice, setAddMealPrice] = useState(57.14);
   const [addValidityDays, setAddValidityDays] = useState(30);
   const [addReminderCount, setAddReminderCount] = useState(5);
   const [paidImmediately, setPaidImmediately] = useState(false);
+
+  const handleSelectPlanForAdd = (planId) => {
+    setSelectedPlanId(planId);
+    if (!planId) return;
+    const plan = plans.find(p => p.id === planId);
+    if (plan) {
+      setAddMealCount(plan.mealCount);
+      setAddMealPrice(plan.mealPrice);
+      setAddValidityDays(plan.validityDays);
+      setAddReminderCount(plan.reminderCount);
+    }
+  };
 
   const activeUsers = customers.filter(c => c.status === "ACTIVE");
   const pendingUsers = customers.filter(c => c.status === "PENDING");
@@ -174,7 +187,7 @@ export default function CustomerClient({ initialCustomers }) {
     try {
       const res = await manuallyAddCustomer(
         { name: addName, email: addEmail, phone: addPhone, paidImmediately },
-        { mealCount: addMealCount, mealPrice: addMealPrice, validityDays: addValidityDays, reminderCount: addReminderCount }
+        { planId: selectedPlanId, mealCount: addMealCount, mealPrice: addMealPrice, validityDays: addValidityDays, reminderCount: addReminderCount }
       );
 
       if (res.success) {
@@ -208,18 +221,25 @@ export default function CustomerClient({ initialCustomers }) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="bg-card border p-1 rounded-lg">
-          <TabsTrigger value="active" className="rounded-md">
+        <TabsList className="bg-card border p-1.5 rounded-lg flex-wrap h-auto gap-1">
+          <TabsTrigger value="active" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5">
             Active ({activeUsers.length})
           </TabsTrigger>
-          <TabsTrigger value="pending" className="rounded-md">
-            Pending Approvals ({pendingUsers.length})
+          <TabsTrigger value="pending" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5 relative flex items-center gap-1.5">
+            Pending Approvals
+            {pendingUsers.length > 0 ? (
+              <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-extrabold text-white animate-pulse">
+                {pendingUsers.length}
+              </span>
+            ) : (
+              <span>(0)</span>
+            )}
           </TabsTrigger>
-          <TabsTrigger value="suspended" className="rounded-md">
+          <TabsTrigger value="suspended" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5">
             Suspended ({suspendedUsers.length})
           </TabsTrigger>
-          <TabsTrigger value="add" className="rounded-md gap-1">
-            <Plus className="h-4 w-4" /> Add Customer
+          <TabsTrigger value="add" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5 gap-1.5">
+            <Plus className="h-5 w-5 text-indigo-600" /> Add Customer
           </TabsTrigger>
         </TabsList>
 
@@ -482,6 +502,24 @@ export default function CustomerClient({ initialCustomers }) {
 
                 <div className="border-t pt-4 mt-2">
                   <h4 className="text-sm font-semibold mb-3 text-indigo-600">Assign Subscription Plan</h4>
+                  
+                  <div className="space-y-2 mb-4">
+                    <Label htmlFor="add-plan-template">Choose Subscription Plan Template</Label>
+                    <select
+                      id="add-plan-template"
+                      value={selectedPlanId}
+                      onChange={(e) => handleSelectPlanForAdd(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none"
+                    >
+                      <option value="">-- Custom Plan (Define below) --</option>
+                      {plans.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.mealCount} Meals, ₹{p.totalAmount})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="add-meals">Meal Count</Label>

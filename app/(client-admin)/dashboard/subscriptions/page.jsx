@@ -1,4 +1,4 @@
-import { getSubscriptionPlans } from "@/actions/subscriptions";
+import { getSubscriptionPlans, getBusinessSubscriptionRequests } from "@/actions/subscriptions";
 import { getBusinessCustomers } from "@/actions/customers";
 import SubscriptionClient from "./SubscriptionClient";
 import { ShieldAlert } from "lucide-react";
@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function SubscriptionsPage() {
   const plansRes = await getSubscriptionPlans();
   const customersRes = await getBusinessCustomers();
+  const requestsRes = await getBusinessSubscriptionRequests();
 
   if (!plansRes.success || !customersRes.success) {
     return (
@@ -28,6 +29,7 @@ export default async function SubscriptionsPage() {
     <SubscriptionClient 
       initialPlans={plansRes.plans} 
       activeCustomers={activeCustomers} 
+      pendingRequests={requestsRes.success ? requestsRes.requests : []}
     />
   );
 }

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { saveMenuEntry, toggleGlobalMenu } from "@/actions/menu";
+import { saveMenuEntry, toggleGlobalMenu, deleteMenuEntry } from "@/actions/menu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Utensils, Save, Eye, EyeOff, CalendarDays, Coffee, Sunrise, Sunset } from "lucide-react";
+import { Utensils, Save, Eye, EyeOff, CalendarDays, Coffee, Sunrise, Sunset, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 const DAYS_OF_WEEK = [
@@ -36,6 +36,11 @@ export default function MenuClient({ initialMenuItems }) {
   // Daily Menu Form States
   const [dailyTitle, setDailyTitle] = useState("");
   const [dailyDescription, setDailyDescription] = useState("");
+
+  // Festival Menu Form States
+  const [festivalDate, setFestivalDate] = useState("");
+  const [festivalTitle, setFestivalTitle] = useState("");
+  const [festivalDescription, setFestivalDescription] = useState("");
 
   // Find existing menu item for currently selected day
   const activeWeeklyEntry = menuItems.find(item => item.type === "WEEKLY" && item.day === selectedDay);
@@ -107,6 +112,59 @@ export default function MenuClient({ initialMenuItems }) {
     }
   };
 
+  const handleSaveFestival = async (e) => {
+    e.preventDefault();
+    if (!festivalDate) {
+      toast.error("Please select a date.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await saveMenuEntry({
+        type: "FESTIVAL",
+        date: festivalDate,
+        title: festivalTitle,
+        description: festivalDescription
+      });
+
+      if (res.success) {
+        toast.success(`Saved festival/special menu for ${festivalDate}!`);
+        setMenuItems(prev => {
+          const dateStr = new Date(festivalDate).toDateString();
+          const filtered = prev.filter(item => !(item.type === "FESTIVAL" && new Date(item.date).toDateString() === dateStr));
+          return [...filtered, res.menu];
+        });
+        setFestivalTitle("");
+        setFestivalDescription("");
+        setFestivalDate("");
+      } else {
+        toast.error(res.error || "Failed to save festival menu");
+      }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteMenuEntry = async (menuId) => {
+    if (!confirm("Are you sure you want to delete this menu entry?")) return;
+    setLoading(true);
+    try {
+      const res = await deleteMenuEntry(menuId);
+      if (res.success) {
+        toast.success("Menu entry deleted successfully.");
+        setMenuItems(prev => prev.filter(item => item.id !== menuId));
+      } else {
+        toast.error(res.error || "Failed to delete entry");
+      }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleToggleMenu = async (checked) => {
     setLoading(true);
     const newStatus = checked ? "ACTIVE" : "INACTIVE";
@@ -165,9 +223,17 @@ export default function MenuClient({ initialMenuItems }) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="bg-card border p-1 rounded-lg">
-          <TabsTrigger value="weekly" className="rounded-md">Weekly Schedule</TabsTrigger>
-          <TabsTrigger value="daily" className="rounded-md">Today's Special Menu</TabsTrigger>
+        <TabsList className="bg-card border p-1.5 rounded-lg flex-wrap h-auto gap-1">
+          <TabsTrigger value="weekly" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5">Weekly Schedule</TabsTrigger>
+          <TabsTrigger value="daily" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5">Today's Special Menu</TabsTrigger>
+          <TabsTrigger value="festival" className="rounded-md text-sm font-bold md:text-base px-5 py-2.5 relative flex items-center gap-1.5">
+            Festival & Special Dates
+            {menuItems.filter(item => item.type === "FESTIVAL").length > 0 && (
+              <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-extrabold text-white animate-pulse">
+                {menuItems.filter(item => item.type === "FESTIVAL").length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* WEEKLY MENU PLANNER */}
@@ -319,6 +385,108 @@ export default function MenuClient({ initialMenuItems }) {
                 </Button>
               </CardFooter>
             </form>
+          </Card>
+        </TabsContent>
+
+        {/* FESTIVAL / SPECIAL DATE PLANNER */}
+        <TabsContent value="festival" className="grid gap-6 md:grid-cols-3">
+          {/* Festival Form Card */}
+          <Card className="col-span-1 shadow-md h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-bold flex items-center gap-1.5">
+                <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" /> Add Festival Menu
+              </CardTitle>
+              <CardDescription>Publish special menu for a calendar date</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveFestival} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fest-date">Select Festival Date</Label>
+                  <Input 
+                    id="fest-date" 
+                    type="date" 
+                    required 
+                    value={festivalDate} 
+                    onChange={(e) => setFestivalDate(e.target.value)} 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fest-title">Festival/Special Title</Label>
+                  <Input 
+                    id="fest-title" 
+                    required 
+                    value={festivalTitle} 
+                    onChange={(e) => setFestivalTitle(e.target.value)} 
+                    placeholder="E.g. Diwali Festival Feast" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fest-desc">Special Menu Details</Label>
+                  <textarea
+                    id="fest-desc"
+                    required
+                    rows={4}
+                    value={festivalDescription}
+                    onChange={(e) => setFestivalDescription(e.target.value)}
+                    placeholder="E.g. Shrikhand, Puri, Chole Masala, Pulav, Katachi Amti, Kaju Katli"
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+
+                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium" disabled={loading}>
+                  <Save className="h-4 w-4 mr-2" /> Save Date Special
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Festival Calendar List */}
+          <Card className="col-span-2 shadow-md">
+            <CardHeader>
+              <CardTitle>Scheduled Festivals & Specials</CardTitle>
+              <CardDescription>Special menus visible on their scheduled dates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {menuItems.filter(item => item.type === "FESTIVAL").length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/20">
+                  <CalendarDays className="h-10 w-10 mx-auto mb-2 text-muted-foreground opacity-50" />
+                  <p className="text-sm text-muted-foreground">No festival or special date menus scheduled yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {menuItems
+                    .filter(item => item.type === "FESTIVAL")
+                    .sort((a, b) => new Date(a.date) - new Date(b.date))
+                    .map((item) => (
+                      <div key={item.id} className="flex justify-between items-start rounded-xl border p-4 bg-amber-50/20 border-amber-100 hover:shadow-sm transition-all duration-200">
+                        <div className="space-y-1.5 flex-1 pr-4">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-800">
+                              {new Date(item.date).toLocaleDateString("en-US", { timeZone: "Asia/Kolkata", dateStyle: "medium" })}
+                            </span>
+                            <span className="text-[10px] font-semibold text-neutral-500 uppercase">
+                              {new Date(item.date).toLocaleDateString("en-US", { timeZone: "Asia/Kolkata", weekday: "long" })}
+                            </span>
+                          </div>
+                          <h4 className="font-extrabold text-sm text-amber-950">{item.title}</h4>
+                          <p className="text-xs text-neutral-700 leading-relaxed">{item.description}</p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-neutral-400 hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer"
+                          onClick={() => handleDeleteMenuEntry(item.id)}
+                          disabled={loading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

@@ -35,13 +35,19 @@ export async function saveMenuEntry(data) {
     });
     if (!business) throw new Error("Business not found");
 
-    // Upsert: check if a menu entry for this business, type, and day already exists
+    // Upsert: check if a menu entry for this business, type, and day/date already exists
+    const queryWhere = {
+      businessId: business.id,
+      type: data.type,
+    };
+    if (data.type === "FESTIVAL") {
+      queryWhere.date = data.date ? new Date(data.date) : null;
+    } else {
+      queryWhere.day = data.day || null;
+    }
+
     const existing = await db.menu.findFirst({
-      where: {
-        businessId: business.id,
-        type: data.type, // DAILY or WEEKLY
-        day: data.day || null
-      }
+      where: queryWhere
     });
 
     let menu;
@@ -60,6 +66,7 @@ export async function saveMenuEntry(data) {
           businessId: business.id,
           type: data.type,
           day: data.day || null,
+          date: data.date ? new Date(data.date) : null,
           title: data.title,
           description: data.description,
           status: "ACTIVE"
@@ -109,6 +116,22 @@ export async function getCustomerMenu() {
     });
 
     return { success: true, menuItems };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteMenuEntry(menuId) {
+  try {
+    const user = await checkUser();
+    if (!user || user.role !== "CLIENT_ADMIN") throw new Error("Unauthorized");
+
+    await db.menu.delete({
+      where: { id: menuId }
+    });
+
+    revalidatePath("/dashboard/menu");
+    return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
   }

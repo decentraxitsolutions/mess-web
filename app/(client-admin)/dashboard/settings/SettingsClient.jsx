@@ -383,6 +383,24 @@ export default function SettingsClient({ initialSettings }) {
                 Number of days allowed from invoice assignment to payment due date.
               </span>
             </div>
+
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="upiId" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                UPI ID for Diner Payments
+              </Label>
+              <Input
+                id="upiId"
+                name="upiId"
+                type="text"
+                value={settings.upiId || ""}
+                onChange={handleInputChange}
+                placeholder="e.g. business@upi or owner@okaxis"
+                className="border-neutral-200 font-mono"
+              />
+              <span className="text-[10px] text-muted-foreground mt-1 block">
+                If provided, invoices will automatically display a scannable payment QR code generated for this UPI ID.
+              </span>
+            </div>
           </CardContent>
         </Card>
 
