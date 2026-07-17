@@ -25,6 +25,7 @@ export default async function SettingsPage() {
         name: business.name || "",
         phone: business.phone || "",
         address: business.address || "",
+        logoUrl: business.logoUrl || "",
         qrScanEnabled: business.qrScanEnabled,
         breakfastEnabled: business.breakfastEnabled ?? true,
         breakfastStart: business.breakfastStart || "06:00",

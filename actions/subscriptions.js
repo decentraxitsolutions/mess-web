@@ -37,7 +37,7 @@ export async function createSubscriptionPlan(data) {
 
     const mealCount = parseInt(data.mealCount);
     const mealPrice = parseFloat(data.mealPrice);
-    const totalAmount = mealCount * mealPrice;
+    const totalAmount = data.totalAmount ? parseFloat(data.totalAmount) : (mealCount * mealPrice);
     const validityDays = parseInt(data.validityDays);
 
     const plan = await db.subscriptionPlan.create({
@@ -102,7 +102,7 @@ export async function assignSubscriptionToCustomer(customerId, planDetails) {
     const baseMealCount = parseInt(planDetails.mealCount);
     const mealCount = baseMealCount + carryOverMeals;
     const mealPrice = parseFloat(planDetails.mealPrice);
-    const totalAmount = baseMealCount * mealPrice;
+    const totalAmount = planDetails.totalAmount ? parseFloat(planDetails.totalAmount) : (baseMealCount * mealPrice);
     const validityDays = parseInt(planDetails.validityDays);
 
     // Deactivate previous active subscriptions for this customer

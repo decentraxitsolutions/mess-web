@@ -86,9 +86,29 @@ export default function BillingClient({ initialBills, businessSettings }) {
 
       {/* PRINT PREVIEW INVOICE MODAL */}
       <Dialog open={selectedBillForPrint !== null} onOpenChange={(open) => !open && setSelectedBillForPrint(null)}>
-        <DialogContent className="sm:max-w-2xl bg-white text-black p-8 rounded-xl print:p-0 print:border-none print:shadow-none">
+        <DialogContent className="sm:max-w-2xl bg-white text-black p-8 rounded-xl print:p-0 print:border-none print:shadow-none max-h-[95vh] overflow-y-auto">
           {selectedBillForPrint && (
-            <div className="space-y-6">
+            <div className="space-y-6 printable-invoice-content">
+              <style dangerouslySetInnerHTML={{__html: `
+                @media print {
+                  body * {
+                    visibility: hidden !important;
+                  }
+                  .printable-invoice-content, .printable-invoice-content * {
+                    visibility: visible !important;
+                  }
+                  .printable-invoice-content {
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 100% !important;
+                    padding: 20px !important;
+                    margin: 0 !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                  }
+                }
+              `}} />
               {/* Invoice Banner */}
               <div className="flex justify-between items-start border-b pb-4">
                 <div>
@@ -96,9 +116,23 @@ export default function BillingClient({ initialBills, businessSettings }) {
                   <p className="text-xs text-muted-foreground mt-1">Invoice Number: <span className="font-mono font-bold text-black">{selectedBillForPrint.invoiceNumber}</span></p>
                   <p className="text-xs text-muted-foreground">Date: {new Date(selectedBillForPrint.createdAt).toLocaleDateString()}</p>
                 </div>
-                <div className="text-right">
-                  <h3 className="font-bold text-sm">MessApp Operations</h3>
-                  <p className="text-xs text-muted-foreground">Premium dining management</p>
+                <div className="text-right flex items-center gap-2.5">
+                  {businessSettings?.logoUrl && (
+                    <img 
+                      src={businessSettings.logoUrl} 
+                      alt="Mess Logo"
+                      className="h-10 w-10 rounded-lg object-cover border bg-neutral-50 shrink-0"
+                    />
+                  )}
+                  <div className="text-right">
+                    <h3 className="font-extrabold text-sm text-indigo-950">{businessSettings?.name || "MessApp Operations"}</h3>
+                    <p className="text-[10px] text-muted-foreground max-w-[200px] leading-tight block">
+                      {businessSettings?.address || "Premium dining management"}
+                    </p>
+                    {businessSettings?.phone && (
+                      <p className="text-[9px] text-muted-foreground mt-0.5">Phone: {businessSettings.phone}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { getScannerQRData } from "@/actions/meals";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { QrCode, Clock, RefreshCw, CheckCircle2, ShieldAlert } from "lucide-react";
+import { QrCode, Clock, RefreshCw, CheckCircle2, ShieldAlert, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -23,6 +23,76 @@ export default function AdminQRConsolePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeMealType, setActiveMealType] = useState("LUNCH");
   const [selectedDate, setSelectedDate] = useState(getTodayKolkataString());
+
+  const qrPayload = data?.uniqueId || "";
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`;
+
+  const handlePrintQR = () => {
+    if (!data) return;
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Print QR Code - ${data.name}</title>
+          <style>
+            body {
+              font-family: sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 90vh;
+              text-align: center;
+              margin: 0;
+            }
+            .container {
+              border: 3px solid #6366f1;
+              padding: 40px;
+              border-radius: 24px;
+              background: #fff;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            }
+            h1 {
+              font-size: 36px;
+              color: #1e1b4b;
+              margin: 0 0 10px 0;
+            }
+            h2 {
+              font-size: 20px;
+              color: #4f46e5;
+              margin: 0 0 30px 0;
+              letter-spacing: 1px;
+            }
+            img {
+              width: 320px;
+              height: 320px;
+            }
+            p {
+              font-size: 16px;
+              color: #64748b;
+              margin-top: 30px;
+              font-weight: bold;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>${data.name}</h1>
+            <h2>MESS CODE: ${data.uniqueId}</h2>
+            <img src="${qrCodeUrl}" alt="QR" />
+            <p>Scan using the Mess Web App to dine</p>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const loadData = async (dateVal = selectedDate, showSpinner = true) => {
     if (showSpinner) setLoading(true);
@@ -89,9 +159,6 @@ export default function AdminQRConsolePage() {
     );
   }
 
-  const qrPayload = data.uniqueId;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`;
-
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
@@ -152,6 +219,13 @@ export default function AdminQRConsolePage() {
               <p className="text-[10px] font-mono text-muted-foreground select-all bg-muted px-3 py-1 rounded-lg">
                 Mess ID Payload: {qrPayload}
               </p>
+
+              <Button
+                onClick={handlePrintQR}
+                className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs gap-1.5 cursor-pointer border-none shadow-md shadow-indigo-100"
+              >
+                <Printer className="h-4 w-4" /> Print QR Code
+              </Button>
             </div>
           </CardContent>
 

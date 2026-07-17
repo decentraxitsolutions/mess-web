@@ -28,17 +28,49 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
   const [planName, setPlanName] = useState("");
   const [mealCount, setMealCount] = useState(56);
   const [mealPrice, setMealPrice] = useState(60);
+  const [totalAmount, setTotalAmount] = useState(3360);
   const [validityDays, setValidityDays] = useState(30);
   const [reminderCount, setReminderCount] = useState(5);
+
+  const handleMealCountChange = (val) => {
+    setMealCount(val);
+    setTotalAmount(val * mealPrice);
+  };
+  const handleMealPriceChange = (val) => {
+    setMealPrice(val);
+    setTotalAmount(mealCount * val);
+  };
+  const handleTotalAmountChange = (val) => {
+    setTotalAmount(val);
+    if (mealCount > 0) {
+      setMealPrice(val / mealCount);
+    }
+  };
 
   // Assign Subscription Form States
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [assignMealCount, setAssignMealCount] = useState(56);
   const [assignMealPrice, setAssignMealPrice] = useState(60);
+  const [assignTotalAmount, setAssignTotalAmount] = useState(3360);
   const [assignValidityDays, setAssignValidityDays] = useState(30);
   const [assignReminderCount, setAssignReminderCount] = useState(5);
   const [paidImmediately, setPaidImmediately] = useState(false);
+
+  const handleAssignMealCountChange = (val) => {
+    setAssignMealCount(val);
+    setAssignTotalAmount(val * assignMealPrice);
+  };
+  const handleAssignMealPriceChange = (val) => {
+    setAssignMealPrice(val);
+    setAssignTotalAmount(assignMealCount * val);
+  };
+  const handleAssignTotalAmountChange = (val) => {
+    setAssignTotalAmount(val);
+    if (assignMealCount > 0) {
+      setAssignMealPrice(val / assignMealCount);
+    }
+  };
 
   const handleCreatePlan = async (e) => {
     e.preventDefault();
@@ -48,6 +80,7 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
         name: planName,
         mealCount,
         mealPrice,
+        totalAmount,
         validityDays,
         reminderCount
       });
@@ -95,6 +128,7 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
     if (plan) {
       setAssignMealCount(plan.mealCount);
       setAssignMealPrice(plan.mealPrice);
+      setAssignTotalAmount(plan.totalAmount);
       setAssignValidityDays(plan.validityDays);
       setAssignReminderCount(plan.reminderCount);
     }
@@ -111,6 +145,7 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
       const res = await assignSubscriptionToCustomer(selectedCustomerId, {
         mealCount: assignMealCount,
         mealPrice: assignMealPrice,
+        totalAmount: assignTotalAmount,
         validityDays: assignValidityDays,
         reminderCount: assignReminderCount,
         paidImmediately
@@ -278,7 +313,7 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="plan-meals">Meal Count</Label>
                     <Input 
@@ -286,7 +321,7 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
                       type="number" 
                       required 
                       value={mealCount} 
-                      onChange={(e) => setMealCount(parseInt(e.target.value) || 0)} 
+                      onChange={(e) => handleMealCountChange(parseInt(e.target.value) || 0)} 
                     />
                   </div>
                   <div className="space-y-2">
@@ -297,7 +332,18 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
                       step="0.01" 
                       required 
                       value={mealPrice} 
-                      onChange={(e) => setMealPrice(parseFloat(e.target.value) || 0)} 
+                      onChange={(e) => handleMealPriceChange(parseFloat(e.target.value) || 0)} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="plan-total">Total Price (₹)</Label>
+                    <Input 
+                      id="plan-total" 
+                      type="number" 
+                      step="0.01" 
+                      required 
+                      value={totalAmount} 
+                      onChange={(e) => handleTotalAmountChange(parseFloat(e.target.value) || 0)} 
                     />
                   </div>
                 </div>
@@ -383,7 +429,7 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div className="grid grid-cols-3 gap-4 border-t pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="assign-meals-count">Meal Count</Label>
                     <Input 
@@ -391,7 +437,7 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
                       type="number" 
                       required 
                       value={assignMealCount} 
-                      onChange={(e) => setAssignMealCount(parseInt(e.target.value) || 0)} 
+                      onChange={(e) => handleAssignMealCountChange(parseInt(e.target.value) || 0)} 
                     />
                   </div>
                   <div className="space-y-2">
@@ -402,7 +448,18 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
                       step="0.01" 
                       required 
                       value={assignMealPrice} 
-                      onChange={(e) => setAssignMealPrice(parseFloat(e.target.value) || 0)} 
+                      onChange={(e) => handleAssignMealPriceChange(parseFloat(e.target.value) || 0)} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="assign-meals-total">Total Price (₹)</Label>
+                    <Input 
+                      id="assign-meals-total" 
+                      type="number" 
+                      step="0.01" 
+                      required 
+                      value={assignTotalAmount} 
+                      onChange={(e) => handleAssignTotalAmountChange(parseFloat(e.target.value) || 0)} 
                     />
                   </div>
                 </div>
@@ -432,7 +489,7 @@ export default function SubscriptionClient({ initialPlans, activeCustomers, pend
 
                 <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-xs flex justify-between items-center mt-2">
                   <span className="font-semibold text-indigo-900">Total Subscription Charge:</span>
-                  <span className="font-mono font-bold text-indigo-700 text-lg">₹{(assignMealCount * assignMealPrice).toFixed(2)}</span>
+                  <span className="font-mono font-bold text-indigo-700 text-lg">₹{assignTotalAmount}</span>
                 </div>
 
                 <div className="mt-4 flex items-center gap-2">

@@ -38,9 +38,25 @@ export default function CustomerClient({ initialCustomers, plans = [] }) {
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [addMealCount, setAddMealCount] = useState(56);
   const [addMealPrice, setAddMealPrice] = useState(57.14);
+  const [addTotalAmount, setAddTotalAmount] = useState(3200);
   const [addValidityDays, setAddValidityDays] = useState(30);
   const [addReminderCount, setAddReminderCount] = useState(5);
   const [paidImmediately, setPaidImmediately] = useState(false);
+
+  const handleAddMealCountChange = (val) => {
+    setAddMealCount(val);
+    setAddTotalAmount(val * addMealPrice);
+  };
+  const handleAddMealPriceChange = (val) => {
+    setAddMealPrice(val);
+    setAddTotalAmount(addMealCount * val);
+  };
+  const handleAddTotalAmountChange = (val) => {
+    setAddTotalAmount(val);
+    if (addMealCount > 0) {
+      setAddMealPrice(val / addMealCount);
+    }
+  };
 
   const handleSelectPlanForAdd = (planId) => {
     setSelectedPlanId(planId);
@@ -49,6 +65,7 @@ export default function CustomerClient({ initialCustomers, plans = [] }) {
     if (plan) {
       setAddMealCount(plan.mealCount);
       setAddMealPrice(plan.mealPrice);
+      setAddTotalAmount(plan.totalAmount);
       setAddValidityDays(plan.validityDays);
       setAddReminderCount(plan.reminderCount);
     }
@@ -187,7 +204,7 @@ export default function CustomerClient({ initialCustomers, plans = [] }) {
     try {
       const res = await manuallyAddCustomer(
         { name: addName, email: addEmail, phone: addPhone, paidImmediately },
-        { planId: selectedPlanId, mealCount: addMealCount, mealPrice: addMealPrice, validityDays: addValidityDays, reminderCount: addReminderCount }
+        { planId: selectedPlanId, mealCount: addMealCount, mealPrice: addMealPrice, totalAmount: addTotalAmount, validityDays: addValidityDays, reminderCount: addReminderCount }
       );
 
       if (res.success) {
@@ -520,7 +537,7 @@ export default function CustomerClient({ initialCustomers, plans = [] }) {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="add-meals">Meal Count</Label>
                       <Input 
@@ -528,10 +545,7 @@ export default function CustomerClient({ initialCustomers, plans = [] }) {
                         type="number" 
                         required 
                         value={addMealCount} 
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          setAddMealCount(val);
-                        }} 
+                        onChange={(e) => handleAddMealCountChange(parseInt(e.target.value) || 0)} 
                       />
                     </div>
                     <div className="space-y-2">
@@ -542,10 +556,18 @@ export default function CustomerClient({ initialCustomers, plans = [] }) {
                         step="0.01" 
                         required 
                         value={addMealPrice} 
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setAddMealPrice(val);
-                        }} 
+                        onChange={(e) => handleAddMealPriceChange(parseFloat(e.target.value) || 0)} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="add-total">Total Price (₹)</Label>
+                      <Input 
+                        id="add-total" 
+                        type="number" 
+                        step="0.01" 
+                        required 
+                        value={addTotalAmount} 
+                        onChange={(e) => handleAddTotalAmountChange(parseFloat(e.target.value) || 0)} 
                       />
                     </div>
                   </div>

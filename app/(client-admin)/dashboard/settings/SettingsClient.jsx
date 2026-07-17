@@ -29,6 +29,26 @@ export default function SettingsClient({ initialSettings }) {
     }));
   };
 
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 1.5 * 1024 * 1024) {
+      toast.error("Logo file is too large. Please select an image under 1.5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSettings(prev => ({
+        ...prev,
+        logoUrl: reader.result
+      }));
+      toast.success("Logo uploaded successfully!");
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -120,6 +140,55 @@ export default function SettingsClient({ initialSettings }) {
                 placeholder="e.g. Landmark, Near College Campus, City"
                 className="border-neutral-200"
               />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="logoFile" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Mess Brand Logo
+              </Label>
+              <div className="bg-indigo-50/50 rounded-xl p-3 border border-indigo-100/50 mb-3 text-xs text-indigo-950 space-y-1">
+                <p className="font-bold text-indigo-900 flex items-center gap-1">
+                  <Info className="h-3.5 w-3.5" /> Logo Upload Guidelines:
+                </p>
+                <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground text-[11px]">
+                  <li>Choose a square or circular logo file from your system.</li>
+                  <li>Supported formats: <strong>PNG, JPG, JPEG, SVG, WebP</strong>.</li>
+                  <li>File size must be <strong>under 1.5MB</strong>.</li>
+                  <li>This logo will represent your brand at the top of all billing invoices.</li>
+                </ul>
+              </div>
+              <Input
+                id="logoFile"
+                name="logoFile"
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="border-neutral-200 cursor-pointer bg-white"
+              />
+              <span className="text-[10px] text-muted-foreground mt-1 block">
+                Select an image file from your system to show your brand logo on diner invoices.
+              </span>
+              {settings.logoUrl && (
+                <div className="flex items-center gap-3 mt-3 p-2.5 border rounded-xl bg-neutral-50/50 w-fit">
+                  <img 
+                    src={settings.logoUrl} 
+                    alt="Logo Preview" 
+                    className="h-14 w-14 object-cover rounded-lg border bg-white shadow-sm shrink-0" 
+                  />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-neutral-800">Logo Selected</p>
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      size="sm" 
+                      className="h-7 text-[10px] px-2.5 font-bold cursor-pointer"
+                      onClick={() => setSettings(prev => ({ ...prev, logoUrl: "" }))}
+                    >
+                      Remove Logo
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

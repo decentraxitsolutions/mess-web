@@ -232,7 +232,7 @@ export async function manuallyAddCustomer(customerData, subData) {
     // Create subscription
     const mealCount = parseInt(subData.mealCount);
     const mealPrice = parseFloat(subData.mealPrice);
-    const totalAmount = mealCount * mealPrice;
+    const totalAmount = subData.totalAmount ? parseFloat(subData.totalAmount) : (mealCount * mealPrice);
     const validityDays = parseInt(subData.validityDays);
 
     await db.subscription.create({

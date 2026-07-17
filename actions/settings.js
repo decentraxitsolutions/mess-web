@@ -36,6 +36,7 @@ export async function updateBusinessSettings(data) {
         name: data.name,
         phone: data.phone,
         address: data.address,
+        logoUrl: data.logoUrl || null,
         qrScanEnabled: data.qrScanEnabled !== undefined ? Boolean(data.qrScanEnabled) : true,
         breakfastEnabled: data.breakfastEnabled !== undefined ? Boolean(data.breakfastEnabled) : true,
         breakfastStart: data.breakfastStart,
